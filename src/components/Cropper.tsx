@@ -3,17 +3,25 @@ import {
   Image,
   ImageURISource,
   PanResponder,
+  PanResponderInstance,
   Text,
   View,
 } from 'react-native';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { clamp } from '../Util';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { clamp, createPanResponder, Value } from '../Util';
+import CropperHandle from './CropperHandle';
 
 export interface CropBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
 }
 
 interface Props {
@@ -24,7 +32,8 @@ interface Props {
 }
 
 type ValueXY = Animated.ValueXY & { _value: number };
-type Value = Animated.Value & { _value: number };
+
+type Side = 'all' | 'left' | 'right' | 'top' | 'bottom';
 
 export default function Cropper({
   imageSource,
@@ -40,63 +49,112 @@ export default function Cropper({
     }) as ValueXY,
   ).current;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        // pan.setOffset({
-        //   x: (pan.x as Value)._value,
-        //   y: (pan.y as Value)._value,
-        // });
-        const panX = (pan.x as Value)._value;
-        const panY = (pan.y as Value)._value;
-        pan.setOffset({
-          x: clamp(panX, 0, dimensions.w - (dims.x as Value)._value),
-          y: clamp(panY, 0, dimensions.h - (dims.y as Value)._value),
-        });
-      },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: () => {
-        pan.flattenOffset();
+  const left = useMemo(() => new Animated.Value(10), []) as Value;
+  const right = useMemo(() => new Animated.Value(10), []) as Value;
+  const top = useMemo(() => new Animated.Value(10), []) as Value;
+  const bottom = useMemo(() => new Animated.Value(10), []) as Value;
 
-        onBoundsChanged?.({
-          x: (pan.x as Value)._value,
-          y: (pan.y as Value)._value,
-          width: (dims.x as Value)._value,
-          height: (dims.y as Value)._value,
-        });
-      },
-    }),
-  ).current;
+  const minW = 200;
+  const minH = 200;
 
-  const bottomResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        dims.setOffset({
-          x: (dims.x as Value)._value,
-          y: (dims.y as Value)._value,
-        });
-      },
-      onPanResponderMove: Animated.event(
-        [
-          null,
-          {
-            dx: dims.x,
-            dy: dims.y,
-          },
-        ],
-        {
-          useNativeDriver: false,
-        },
-      ),
-      onPanResponderRelease: () => {
-        dims.flattenOffset();
-      },
-    }),
-  ).current;
+  const updateBounds = useCallback(() => {
+    onBoundsChanged?.({
+      left: (left as Value)._value,
+      right: (right as Value)._value,
+      top: (top as Value)._value,
+      bottom: (bottom as Value)._value,
+    });
+  }, [onBoundsChanged, left, right, top, bottom]);
+
+  // const createPanResponder = useCallback(
+  //   (sides: Side[]) => {
+  //     const l = sides.some((side) => side === 'left' || side === 'all');
+  //     const r = sides.some((side) => side === 'right' || side === 'all');
+  //     const t = sides.some((side) => side === 'top' || side === 'all');
+  //     const b = sides.some((side) => side === 'bottom' || side === 'all');
+
+  //     return PanResponder.create({
+  //       onMoveShouldSetPanResponder: () => true,
+  //       onPanResponderGrant: () => {
+  //         left.setOffset((left as Value)._value);
+  //         right.setOffset((right as Value)._value);
+  //         top.setOffset((top as Value)._value);
+  //         bottom.setOffset((bottom as Value)._value);
+  //       },
+  //       onPanResponderMove: (e, gestureState) => {
+  //         const { dx, dy } = gestureState;
+
+  //         const lv = (left as Value)._offset;
+  //         const tv = (top as Value)._offset;
+  //         const rv = (right as Value)._offset;
+  //         const bv = (bottom as Value)._offset;
+
+  //         // Clamp values within bounds
+  //         let dl = l ? clamp(dx, -lv, dimensions.w - lv) : 0;
+  //         let dr = r ? clamp(-dx, -rv, dimensions.w - rv) : 0;
+  //         let dt = t ? clamp(dy, -tv, dimensions.h - tv) : 0;
+  //         let db = b ? clamp(-dy, -bv, dimensions.h - bv) : 0;
+
+  //         // Preserve width if both horizontal edges are active
+  //         if (l && r) {
+  //           if (Math.abs(dl) > Math.abs(dr)) {
+  //             dl = -dr;
+  //           } else {
+  //             dr = -dl;
+  //           }
+  //         }
+
+  //         // Preserve height if both vertical edges are active
+  //         if (t && b) {
+  //           if (Math.abs(dt) > Math.abs(db)) {
+  //             dt = -db;
+  //           } else {
+  //             db = -dt;
+  //           }
+  //         }
+
+  //         return Animated.event(
+  //           [{ dl: left, dr: right, dt: top, db: bottom }],
+  //           {
+  //             useNativeDriver: false,
+  //           },
+  //         )({
+  //           dl,
+  //           dr,
+  //           dt,
+  //           db,
+  //         });
+  //       },
+  //       onPanResponderRelease: () => {
+  //         left.flattenOffset();
+  //         right.flattenOffset();
+  //         top.flattenOffset();
+  //         bottom.flattenOffset();
+
+  //         updateBounds();
+  //       },
+  //     });
+  //   },
+  //   [updateBounds, top, left, right, bottom, dimensions],
+  // );
+
+  // const responders = useMemo<{ [s: string]: PanResponderInstance }>(
+  //   () => ({
+  //     general: createPanResponder(['all']),
+  //     topRight: createPanResponder(['top', 'right']),
+  //     bottomRight: createPanResponder(['bottom', 'right']),
+  //   }),
+  //   [createPanResponder],
+  // );
+
+  // const responders = useMemo(
+  //   () => ({
+  //     general: createPanResponder(['all']),
+  //     topLeft: createPanResponder(['top', 'left']),
+  //     topRight: createPanResponder(['top', 'right']),
+  //   }),
+  //   [createPanResponder],
+  // );
 
   const [yy, setYy] = useState(0);
   useEffect(() => {
@@ -105,6 +163,7 @@ export default function Cropper({
     });
 
     return () => pan.removeListener(listener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // const [limits, setLimits] = useState({
@@ -116,31 +175,65 @@ export default function Cropper({
 
   useEffect(() => {
     const listener = dims.addListener((val) => {
-      setW(val.x);
+      setW(clamp(val.x, 0, dimensions.w - position.x));
       setYy(new Date().getSeconds());
-      setH(val.y);
+      setH(clamp(val.y, 0, dimensions.h - position.y));
     });
 
     return () => dims.removeListener(listener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const x =
-    position && dimensions
-      ? pan.x.interpolate({
-          inputRange: [0, dimensions.w - w],
-          outputRange: [0, dimensions.w - w],
-          extrapolate: 'clamp',
-        })
-      : pan.x;
+  // const w =
+  //   position && dimensions
+  //     ? dims.x.interpolate({
+  //         inputRange: [0, Math.max(dimensions.w - position.x, 0)],
+  //         outputRange: [0, Math.max(dimensions.w - position.x, 0)],
+  //         extrapolate: 'clamp',
+  //       })
+  //     : dims.x;
 
-  const y =
-    position && dimensions
-      ? pan.y.interpolate({
-          inputRange: [0, dimensions.h - h],
-          outputRange: [0, dimensions.h - h],
-          extrapolate: 'clamp',
-        })
-      : pan.y;
+  // const h =
+  //   position && dimensions
+  //     ? dims.y.interpolate({
+  //         inputRange: [0, Math.max(dimensions.h - position.y, 0)],
+  //         outputRange: [0, Math.max(dimensions.h - position.y, 0)],
+  //         extrapolate: 'clamp',
+  //       })
+  //     : dims.y;
+
+  // const x =
+  //   position && dimensions
+  //     ? pan.x.interpolate({
+  //         inputRange: [0, Math.max(dimensions.w - w, 0)],
+  //         outputRange: [0, Math.max(dimensions.w - w, 0)],
+  //         extrapolate: 'clamp',
+  //       })
+  //     : pan.x;
+
+  // const y =
+  //   position && dimensions
+  //     ? pan.y.interpolate({
+  //         inputRange: [0, Math.max(dimensions.h - h, 0)],
+  //         outputRange: [0, Math.max(dimensions.h - h, 0)],
+  //         extrapolate: 'clamp',
+  //       })
+  //     : pan.y;
+
+  const generalPan = useMemo(
+    () =>
+      createPanResponder({
+        onCropUpdate: updateBounds,
+        dimensions,
+        sides: {
+          left,
+          right,
+          top,
+          bottom,
+        },
+      }),
+    [updateBounds, left, right, top, bottom, dimensions],
+  );
 
   return (
     <>
@@ -148,34 +241,18 @@ export default function Cropper({
         style={[
           {
             position: 'absolute',
-            left: x,
-            top: y,
-            width: dims.x,
-            height: dims.y,
-            // bottom: bottom._value,
+            left,
+            top,
+            right,
+            bottom,
             borderColor: 'red',
             borderWidth: 1,
-          },
-          {
-            transform: [
-              // {
-              //   rotate: rotation.interpolate({
-              //     inputRange: [0, 1],
-              //     outputRange: ['0deg', '360deg'],
-              //   }),
-              // },
-              // {
-              //   translateX: pan.x,
-              // },
-              // {
-              //   translateY: pan.y,
-              // },
-            ],
+            justifyContent: 'center',
+            alignItems: 'center',
           },
         ]}
-        {...panResponder.panHandlers}
       >
-        <View
+        <Animated.View
           style={{
             position: 'absolute',
             left: 0,
@@ -184,65 +261,76 @@ export default function Cropper({
             right: 0,
             overflow: 'hidden',
           }}
+          {...generalPan.panHandlers}
         >
-          {/* <Animated.Image
+          <Animated.Image
             source={imageSource}
             style={[
               {
-                // width: '100%',
-                // height: '100%',
                 position: 'absolute',
-                left: position?.x || 0,
-                top: position?.y || 0,
-                width: dimensions?.w,
-                height: dimensions?.h,
-                // left: -(pan.x as Value)._value,
-                // top: -(pan.y as Value)._value,
-              },
-              {
-                transform: [
-                  // {
-                  //   rotate: rotation.interpolate({
-                  //     inputRange: [0, 1],
-                  //     outputRange: ['0deg', '360deg'],
-                  //   }),
-                  // },
-                  {
-                    translateX: Animated.multiply(pan.x, -1),
-                  },
-                  {
-                    translateY: Animated.multiply(pan.y, -1),
-                  },
-                ],
+                left: Animated.multiply(left, -1),
+                top: Animated.multiply(top, -1),
+                width: dimensions.w,
+                height: dimensions.h,
               },
             ]}
-          /> */}
-        </View>
+          />
+        </Animated.View>
+        {/* Top row */}
+        <CropperHandle
+          sides={{ top, left }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        <CropperHandle
+          sides={{ top }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        <CropperHandle
+          sides={{ top, right }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        {/* Mid row */}
+        <CropperHandle
+          sides={{ left }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        <CropperHandle
+          sides={{ right }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        {/* Bottom row */}
+        <CropperHandle
+          sides={{ bottom, left }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        <CropperHandle
+          sides={{ bottom }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
+        <CropperHandle
+          sides={{ bottom, right }}
+          onCropUpdate={updateBounds}
+          dimensions={dimensions}
+        />
         <Text>{yy}</Text>
       </Animated.View>
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: Animated.subtract(Animated.add(y, dims.y), 20),
-            left: Animated.subtract(Animated.add(x, dims.x), 20),
-            width: 40,
-            height: 40,
-            backgroundColor: 'red',
-          },
-          {
-            transform: [
-              // {
-              //   translateX: br.x,
-              // },
-              // {
-              //   translateY: bottom,
-              // },
-            ],
-          },
-        ]}
-        {...bottomResponder.panHandlers}
-      ></Animated.View>
+      {/* <CropperHandle
+        sides={{ right, top }}
+        onCropUpdate={updateBounds}
+        dimensions={dimensions}
+      />
+      <CropperHandle
+        sides={{ left, top }}
+        onCropUpdate={updateBounds}
+        dimensions={dimensions}
+      /> */}
     </>
   );
 }

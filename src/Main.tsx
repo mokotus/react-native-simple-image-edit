@@ -160,6 +160,8 @@ export default function Main({ imageSource, afterSave }: Props) {
           height: dimensions?.h,
           borderColor: 'green',
           borderWidth: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         {dimensions && position && (
