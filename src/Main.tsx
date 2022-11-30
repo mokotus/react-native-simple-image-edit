@@ -8,7 +8,7 @@ import {
   Button,
 } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import CropOverlay, { CropBounds } from './components/CropOverlay';
+import Cropper, { CropBounds } from './components/Cropper';
 import { applyImageEdits } from './Util';
 interface Props {
   imageSource?: ImageURISource;
@@ -132,7 +132,13 @@ export default function Main({ imageSource, afterSave }: Props) {
           });
         }}
         style={[
-          { width: dimensions?.w, height: dimensions?.h, opacity: 0.3 },
+          {
+            width: dimensions?.w,
+            height: dimensions?.h,
+            opacity: 0.3,
+            // borderColor: 'yellow',
+            // borderWidth: 1,
+          },
           {
             transform: [
               {
@@ -145,12 +151,26 @@ export default function Main({ imageSource, afterSave }: Props) {
           },
         ]}
       />
-      <CropOverlay
-        imageSource={imageSource}
-        dimensions={dimensions || undefined}
-        position={position}
-        onBoundsChanged={setCropBounds}
-      />
+      <View
+        style={{
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+          width: dimensions?.w,
+          height: dimensions?.h,
+          borderColor: 'green',
+          borderWidth: 1,
+        }}
+      >
+        {dimensions && position && (
+          <Cropper
+            imageSource={imageSource}
+            dimensions={dimensions || undefined}
+            position={position}
+            onBoundsChanged={setCropBounds}
+          />
+        )}
+      </View>
     </View>
   );
 }

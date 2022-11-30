@@ -25,6 +25,7 @@
   "devDependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.4",
     "@react-native-community/eslint-config": "^3.2.0",
+    "@react-native-community/image-editor": "^2.3.0",
     "@react-native-masked-view/masked-view": "^0.2.8",
     "@types/react": "^18.0.25",
     "@types/react-native": "^0.70.7",

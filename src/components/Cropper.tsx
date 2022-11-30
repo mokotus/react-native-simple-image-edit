@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { clamp } from '../Util';
 
 export interface CropBounds {
   x: number;
@@ -17,15 +18,15 @@ export interface CropBounds {
 
 interface Props {
   imageSource?: ImageURISource;
-  dimensions?: { w: number; h: number };
-  position?: { x: number; y: number };
+  dimensions: { w: number; h: number };
+  position: { x: number; y: number };
   onBoundsChanged?: (bounds: CropBounds) => void;
 }
 
 type ValueXY = Animated.ValueXY & { _value: number };
 type Value = Animated.Value & { _value: number };
 
-export default function CropOverlay({
+export default function Cropper({
   imageSource,
   dimensions,
   position,
@@ -43,9 +44,15 @@ export default function CropOverlay({
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+        // pan.setOffset({
+        //   x: (pan.x as Value)._value,
+        //   y: (pan.y as Value)._value,
+        // });
+        const panX = (pan.x as Value)._value;
+        const panY = (pan.y as Value)._value;
         pan.setOffset({
-          x: (pan.x as Value)._value,
-          y: (pan.y as Value)._value,
+          x: clamp(panX, 0, dimensions.w - (dims.x as Value)._value),
+          y: clamp(panY, 0, dimensions.h - (dims.y as Value)._value),
         });
       },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
@@ -53,6 +60,7 @@ export default function CropOverlay({
       }),
       onPanResponderRelease: () => {
         pan.flattenOffset();
+
         onBoundsChanged?.({
           x: (pan.x as Value)._value,
           y: (pan.y as Value)._value,
@@ -72,9 +80,18 @@ export default function CropOverlay({
           y: (dims.y as Value)._value,
         });
       },
-      onPanResponderMove: Animated.event([null, { dx: dims.x, dy: dims.y }], {
-        useNativeDriver: false,
-      }),
+      onPanResponderMove: Animated.event(
+        [
+          null,
+          {
+            dx: dims.x,
+            dy: dims.y,
+          },
+        ],
+        {
+          useNativeDriver: false,
+        },
+      ),
       onPanResponderRelease: () => {
         dims.flattenOffset();
       },
@@ -83,10 +100,47 @@ export default function CropOverlay({
 
   const [yy, setYy] = useState(0);
   useEffect(() => {
-    pan.addListener((xy) => {
-      setYy(xy.y);
+    const listener = pan.addListener((xy) => {
+      // setYy(xy.y);
     });
-  }, [pan]);
+
+    return () => pan.removeListener(listener);
+  }, []);
+
+  // const [limits, setLimits] = useState({
+
+  // })
+
+  const [w, setW] = useState(400);
+  const [h, setH] = useState(400);
+
+  useEffect(() => {
+    const listener = dims.addListener((val) => {
+      setW(val.x);
+      setYy(new Date().getSeconds());
+      setH(val.y);
+    });
+
+    return () => dims.removeListener(listener);
+  }, []);
+
+  const x =
+    position && dimensions
+      ? pan.x.interpolate({
+          inputRange: [0, dimensions.w - w],
+          outputRange: [0, dimensions.w - w],
+          extrapolate: 'clamp',
+        })
+      : pan.x;
+
+  const y =
+    position && dimensions
+      ? pan.y.interpolate({
+          inputRange: [0, dimensions.h - h],
+          outputRange: [0, dimensions.h - h],
+          extrapolate: 'clamp',
+        })
+      : pan.y;
 
   return (
     <>
@@ -94,8 +148,8 @@ export default function CropOverlay({
         style={[
           {
             position: 'absolute',
-            left: pan.x,
-            top: pan.y,
+            left: x,
+            top: y,
             width: dims.x,
             height: dims.y,
             // bottom: bottom._value,
@@ -170,8 +224,8 @@ export default function CropOverlay({
         style={[
           {
             position: 'absolute',
-            top: Animated.subtract(Animated.add(pan.y, dims.y), 20),
-            left: Animated.subtract(Animated.add(pan.x, dims.x), 20),
+            top: Animated.subtract(Animated.add(y, dims.y), 20),
+            left: Animated.subtract(Animated.add(x, dims.x), 20),
             width: 40,
             height: 40,
             backgroundColor: 'red',

@@ -1,6 +1,6 @@
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 import ImageEditor from '@react-native-community/image-editor';
-import { CropBounds } from './components/CropOverlay';
+import { CropBounds } from './components/Cropper';
 
 interface EditedImageValues {
   originalWidth: number;
@@ -47,4 +47,8 @@ export async function applyImageEdits(
   });
 
   return finalUri;
+}
+
+export function clamp(n: number, min: number, max: number) {
+  return n > max ? max : n < min ? min : n;
 }
