@@ -8,10 +8,18 @@ import {
 } from 'react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+export interface CropBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface Props {
   imageSource?: ImageURISource;
   dimensions?: { w: number; h: number };
   position?: { x: number; y: number };
+  onBoundsChanged?: (bounds: CropBounds) => void;
 }
 
 type ValueXY = Animated.ValueXY & { _value: number };
@@ -21,6 +29,7 @@ export default function CropOverlay({
   imageSource,
   dimensions,
   position,
+  onBoundsChanged,
 }: Props) {
   const pan = useRef<ValueXY>(new Animated.ValueXY() as ValueXY).current;
   const dims = useRef<ValueXY>(
@@ -44,6 +53,12 @@ export default function CropOverlay({
       }),
       onPanResponderRelease: () => {
         pan.flattenOffset();
+        onBoundsChanged?.({
+          x: (pan.x as Value)._value,
+          y: (pan.y as Value)._value,
+          width: (dims.x as Value)._value,
+          height: (dims.y as Value)._value,
+        });
       },
     }),
   ).current;
@@ -75,7 +90,7 @@ export default function CropOverlay({
 
   return (
     <>
-      <Animated.View
+      <Animated.View // TODO:
         style={[
           {
             position: 'absolute',

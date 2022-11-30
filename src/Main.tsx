@@ -8,12 +8,14 @@ import {
   Button,
 } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import CropOverlay from './components/CropOverlay';
+import CropOverlay, { CropBounds } from './components/CropOverlay';
+import { applyImageEdits } from './Util';
 interface Props {
   imageSource?: ImageURISource;
+  afterSave: () => void;
 }
 
-export default function Main({ imageSource }: Props) {
+export default function Main({ imageSource, afterSave }: Props) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(
     null,
   );
@@ -53,6 +55,8 @@ export default function Main({ imageSource }: Props) {
     });
   }, [rotation, rotationTarget]);
 
+  const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
+
   return (
     <View
       style={{
@@ -65,6 +69,19 @@ export default function Main({ imageSource }: Props) {
           title="left"
           onPress={() => {
             setRotationTarget((rt) => rt + 0.25);
+          }}
+        />
+        <Button
+          title="save"
+          onPress={() => {
+            if (imageSource?.uri && dimensions && cropBounds) {
+              applyImageEdits(imageSource.uri, {
+                originalWidth: dimensions.w,
+                originalHeight: dimensions.h,
+                rotation: rotationTarget * 360,
+                cropBounds,
+              }).then(afterSave);
+            }
           }}
         />
       </View>
@@ -132,6 +149,7 @@ export default function Main({ imageSource }: Props) {
         imageSource={imageSource}
         dimensions={dimensions || undefined}
         position={position}
+        onBoundsChanged={setCropBounds}
       />
     </View>
   );
