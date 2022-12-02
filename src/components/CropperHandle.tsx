@@ -1,32 +1,34 @@
 import { Animated } from 'react-native';
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import { createPanResponder, Sides, Value } from '../Util';
+import { ImageContext } from '../Main';
 
 interface Props {
   sides: Sides;
   onCropUpdate?: () => void;
-  dimensions: { w: number; h: number };
-  rotation: Value;
+  color?: boolean;
 }
 
-export default function CropperHandle({
-  sides,
-  onCropUpdate,
-  dimensions,
-  rotation,
-}: Props) {
+export default function CropperHandle({ sides, onCropUpdate, color }: Props) {
   const { left, right, top, bottom } = sides;
+
+  const { dimensions, rotation, scale, onDebug } = useContext(ImageContext);
 
   const responder = useMemo(
     () =>
+      rotation &&
+      scale &&
       createPanResponder({
         onCropUpdate,
         dimensions,
         rotation,
+        scale,
         sides,
       }),
-    [dimensions, onCropUpdate, sides, rotation],
+    [dimensions, onCropUpdate, sides, rotation, scale],
   );
+
+  onDebug?.('handle');
 
   return (
     <Animated.View
@@ -38,10 +40,10 @@ export default function CropperHandle({
         right: right && -20,
         width: 40,
         height: 40,
-        backgroundColor: 'gray',
+        backgroundColor: color ? 'orange' : 'gray',
         borderRadius: 100,
       }}
-      {...responder.panHandlers}
+      {...responder?.panHandlers}
     />
   );
 }

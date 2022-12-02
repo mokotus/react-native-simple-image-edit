@@ -13,9 +13,11 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useContext,
 } from 'react';
 import { clamp, createPanResponder, Value, ValueXY } from '../Util';
 import CropperHandle from './CropperHandle';
+import { ImageContext } from '../Main';
 
 export interface CropBounds {
   left: number;
@@ -26,21 +28,10 @@ export interface CropBounds {
 
 interface Props {
   imageSource?: ImageURISource;
-  dimensions: { w: number; h: number };
-  position: { x: number; y: number };
   onBoundsChanged?: (bounds: CropBounds) => void;
-  rotation: Value;
-  lastRotationTarget: number;
 }
 
-export default function Cropper({
-  imageSource,
-  dimensions,
-  position,
-  onBoundsChanged,
-  rotation,
-  lastRotationTarget,
-}: Props) {
+export default function Cropper({ imageSource, onBoundsChanged }: Props) {
   const pan = useRef<ValueXY>(new Animated.ValueXY() as ValueXY).current;
   const dims = useRef<ValueXY>(
     new Animated.ValueXY({
@@ -56,6 +47,8 @@ export default function Cropper({
 
   const minW = 200;
   const minH = 200;
+
+  const { dimensions, rotation, scale } = useContext(ImageContext);
 
   const updateBounds = useCallback(() => {
     onBoundsChanged?.({
@@ -156,7 +149,7 @@ export default function Cropper({
   //   [createPanResponder],
   // );
 
-  const [yy, setYy] = useState(0);
+  // const [yy, setYy] = useState(0);
   // useEffect(() => {
   //   const listener = pan.addListener((xy) => {
   //     // setYy(xy.y);
@@ -170,19 +163,19 @@ export default function Cropper({
 
   // })
 
-  const [w, setW] = useState(400);
-  const [h, setH] = useState(400);
+  // const [w, setW] = useState(400);
+  // const [h, setH] = useState(400);
 
-  useEffect(() => {
-    const listener = dims.addListener((val) => {
-      setW(clamp(val.x, 0, dimensions.w - position.x));
-      setYy(new Date().getSeconds());
-      setH(clamp(val.y, 0, dimensions.h - position.y));
-    });
+  // useEffect(() => {
+  //   const listener = dims.addListener((val) => {
+  //     setW(clamp(val.x, 0, dimensions.w - position.x));
+  //     setYy(new Date().getSeconds());
+  //     setH(clamp(val.y, 0, dimensions.h - position.y));
+  //   });
 
-    return () => dims.removeListener(listener);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  //   return () => dims.removeListener(listener);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   // const w =
   //   position && dimensions
@@ -222,10 +215,13 @@ export default function Cropper({
 
   const generalPan = useMemo(
     () =>
+      rotation &&
+      scale &&
       createPanResponder({
         onCropUpdate: updateBounds,
         dimensions,
         rotation,
+        scale,
         sides: {
           left,
           right,
@@ -233,8 +229,12 @@ export default function Cropper({
           bottom,
         },
       }),
-    [updateBounds, left, right, top, bottom, dimensions, rotation],
+    [updateBounds, left, right, top, bottom, dimensions, rotation, scale],
   );
+
+  if (!rotation || !scale) {
+    return null;
+  }
 
   return (
     <>
@@ -251,17 +251,8 @@ export default function Cropper({
             justifyContent: 'center',
             alignItems: 'center',
           },
-          {
-            transform: [
-              {
-                rotate: rotation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '360deg'],
-                }),
-              },
-            ],
-          },
         ]}
+        {...generalPan?.panHandlers}
       >
         <Animated.View
           style={{
@@ -272,9 +263,8 @@ export default function Cropper({
             right: 0,
             overflow: 'hidden',
           }}
-          {...generalPan.panHandlers}
         >
-          <Animated.Image
+          {/* <Animated.Image
             source={imageSource}
             style={[
               {
@@ -284,61 +274,33 @@ export default function Cropper({
                 width: dimensions.w,
                 height: dimensions.h,
               },
+              {
+                transform: [
+                  {
+                    rotate: rotation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  },
+                  {
+                    scale,
+                  },
+                ],
+              },
             ]}
-          />
+          /> */}
         </Animated.View>
         {/* Top row */}
-        <CropperHandle
-          sides={{ top, left }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <CropperHandle
-          sides={{ top }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <CropperHandle
-          sides={{ top, right }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
+        <CropperHandle sides={{ top, left }} onCropUpdate={updateBounds} />
+        <CropperHandle sides={{ top }} onCropUpdate={updateBounds} />
+        <CropperHandle sides={{ top, right }} onCropUpdate={updateBounds} />
         {/* Mid row */}
-        <CropperHandle
-          sides={{ left }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <CropperHandle
-          sides={{ right }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
+        <CropperHandle color sides={{ left }} onCropUpdate={updateBounds} />
+        <CropperHandle sides={{ right }} onCropUpdate={updateBounds} />
         {/* Bottom row */}
-        <CropperHandle
-          sides={{ bottom, left }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <CropperHandle
-          sides={{ bottom }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <CropperHandle
-          sides={{ bottom, right }}
-          onCropUpdate={updateBounds}
-          dimensions={dimensions}
-          rotation={rotation}
-        />
-        <Text>{yy}</Text>
+        <CropperHandle sides={{ bottom, left }} onCropUpdate={updateBounds} />
+        <CropperHandle sides={{ bottom }} onCropUpdate={updateBounds} />
+        <CropperHandle sides={{ bottom, right }} onCropUpdate={updateBounds} />
       </Animated.View>
       {/* <CropperHandle
         sides={{ right, top }}

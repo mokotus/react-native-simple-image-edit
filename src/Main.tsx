@@ -16,6 +16,19 @@ interface Props {
   onDebug?: typeof console.log;
 }
 
+interface ImageContextProps {
+  dimensions: { w: number; h: number };
+  rotationTarget: number;
+  rotation?: Value;
+  scale?: Value;
+  onDebug?: typeof console.log;
+}
+
+export const ImageContext = React.createContext<ImageContextProps>({
+  dimensions: { w: 1, h: 1 },
+  rotationTarget: 0,
+});
+
 export default function Main({ imageSource, afterSave, onDebug }: Props) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(
     null,
@@ -56,8 +69,6 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
-  const [lastRotationTarget, setLastRotationTarget] = useState(0);
-
   // Apply image spin animation
   useEffect(() => {
     Animated.timing(rotation, {
@@ -70,7 +81,6 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
         rotation.setValue(rotationTarget % 1);
         setRotationTarget((rotTarget) => rotTarget % 1);
       }
-      setLastRotationTarget(rotationTarget);
     });
   }, [rotation, rotationTarget]);
 
@@ -80,6 +90,8 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
     }
 
     const flipped = Math.round((rotationTarget % 1) * 4) % 2 === 1;
+
+    // onDebug?.('rot', rotationTarget);
 
     Animated.timing(scale, {
       toValue: flipped ? containerDims.h / imageWidth : 1,
@@ -98,35 +110,51 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
 
   const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
 
+  const imageValues = useMemo(
+    () => ({
+      dimensions: dimensions || { w: 1, h: 1 },
+      rotationTarget,
+      rotation,
+      scale,
+      onDebug,
+    }),
+    [dimensions, rotationTarget, rotation, scale, onDebug],
+  );
+
+  onDebug?.('hi');
+
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: 'black',
-      }}
-    >
-      <View style={{ minHeight: 80, flexDirection: 'row' }}>
-        <Button
-          title="left"
-          onPress={() => {
-            setRotationTarget((rt) => rt + 0.25);
-          }}
-        />
-        <Button
-          title="save"
-          onPress={() => {
-            if (imageSource?.uri && dimensions && cropBounds) {
-              applyImageEdits(imageSource.uri, {
-                originalWidth: dimensions.w,
-                originalHeight: dimensions.h,
-                rotation: rotationTarget * 360,
-                cropBounds,
-              }).then(afterSave);
-            }
-          }}
-        />
-      </View>
-      {/* <MaskedView
+    <ImageContext.Provider value={imageValues}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'black',
+        }}
+      >
+        <View style={{ minHeight: 80, flexDirection: 'row' }}>
+          <Button
+            title="right"
+            onPress={() => {
+              setRotationTarget((rt) => rt + 0.25);
+            }}
+          />
+          <Button
+            title="save"
+            onPress={() => {
+              if (imageSource?.uri && dimensions && cropBounds) {
+                applyImageEdits(imageSource.uri, {
+                  originalWidth: dimensions.w,
+                  originalHeight: dimensions.h,
+                  imageWidth,
+                  imageHeight,
+                  rotation: rotationTarget * 360,
+                  cropBounds,
+                }).then(afterSave);
+              }
+            }}
+          />
+        </View>
+        {/* <MaskedView
         androidRenderingMode="software"
         style={{
           flex: 1,
@@ -164,82 +192,107 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
         }
       >
               </MaskedView> */}
-      <View
-        style={{
-          borderWidth: 1,
-          borderColor: 'red',
-          flex: 1,
-          margin: 40,
-          // marginHorizontal: 200,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        onLayout={(e) => {
-          setPosition({
-            x: e.nativeEvent.layout.x,
-            y: e.nativeEvent.layout.y,
-          });
-          setContainerDims({
-            w: e.nativeEvent.layout.width,
-            h: e.nativeEvent.layout.height,
-          });
-        }}
-      >
-        <Animated.Image
-          source={imageSource}
-          resizeMode="contain"
-          style={[
-            {
-              width: imageWidth,
-              height: imageHeight,
-              // flex: 1,
-              // width: '100%',
-              // height: '100%',
-              opacity: 0.3,
-              borderColor: 'yellow',
-              borderWidth: 1,
-            },
-            {
-              transform: [
-                {
-                  rotate: rotation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
-                  }),
-                },
-                {
-                  scale,
-                },
-              ],
-            },
-          ]}
-        />
         <View
           style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            borderColor: 'green',
             borderWidth: 1,
-            justifyContent: 'center',
+            borderColor: 'red',
+            flex: 1,
+            margin: 40,
+            // marginHorizontal: 200,
             alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onLayout={(e) => {
+            onDebug?.('layout');
+            setPosition({
+              x: e.nativeEvent.layout.x,
+              y: e.nativeEvent.layout.y,
+            });
+            setContainerDims({
+              w: e.nativeEvent.layout.width,
+              h: e.nativeEvent.layout.height,
+            });
           }}
         >
-          {dimensions && position && (
-            <Cropper
-              imageSource={imageSource}
-              dimensions={dimensions || undefined}
-              position={position}
-              onBoundsChanged={setCropBounds}
-              rotation={rotation}
-              lastRotationTarget={lastRotationTarget}
+          {imageSource && (
+            <Animated.Image
+              source={imageSource}
+              resizeMode="contain"
+              style={[
+                {
+                  width: imageWidth,
+                  height: imageHeight,
+                  // flex: 1,
+                  // width: '100%',
+                  // height: '100%',
+                  opacity: 0.3,
+                  borderColor: 'yellow',
+                  borderWidth: 1,
+                },
+                {
+                  transform: [
+                    {
+                      rotate: rotation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                    {
+                      scale,
+                    },
+                  ],
+                },
+              ]}
             />
           )}
+
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              borderColor: 'green',
+              borderWidth: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Animated.View
+              style={[
+                {
+                  width: imageWidth,
+                  height: imageHeight,
+                  borderColor: 'blue',
+                  borderWidth: 1,
+                },
+                {
+                  transform: [
+                    {
+                      rotate: rotation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                    {
+                      scale,
+                    },
+                  ],
+                },
+              ]}
+            >
+              {dimensions && position && (
+                <Cropper
+                  imageSource={imageSource}
+                  onBoundsChanged={setCropBounds}
+                />
+              )}
+            </Animated.View>
+          </View>
         </View>
       </View>
-    </View>
+    </ImageContext.Provider>
   );
 }
 

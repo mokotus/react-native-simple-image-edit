@@ -6,6 +6,8 @@ import { CropBounds } from './components/Cropper';
 interface EditedImageValues {
   originalWidth: number;
   originalHeight: number;
+  imageWidth: number;
+  imageHeight: number;
   quality?: number;
   rotation?: number;
   cropBounds: CropBounds;
@@ -16,13 +18,29 @@ export async function applyImageEdits(
   {
     originalWidth,
     originalHeight,
+    imageWidth,
+    imageHeight,
     quality,
     rotation,
     cropBounds,
   }: EditedImageValues,
 ) {
+  const dx = originalWidth / imageWidth;
+  const dy = originalHeight / imageHeight;
+
+  const croppedUri = await ImageEditor.cropImage(uri, {
+    offset: {
+      x: cropBounds.left * dx,
+      y: cropBounds.top * dy,
+    },
+    size: {
+      width: (imageWidth - cropBounds.left - cropBounds.right) * dx,
+      height: (imageHeight - cropBounds.top - cropBounds.bottom) * dy,
+    },
+  });
+
   const { uri: rotatedUri } = await ImageResizer.createResizedImage(
-    uri,
+    croppedUri,
     originalWidth,
     originalHeight,
     'JPEG',
@@ -36,18 +54,7 @@ export async function applyImageEdits(
     },
   );
 
-  const finalUri = await ImageEditor.cropImage(rotatedUri, {
-    offset: {
-      x: cropBounds.left,
-      y: cropBounds.top,
-    },
-    size: {
-      width: originalWidth - cropBounds.left - cropBounds.right,
-      height: originalHeight - cropBounds.top - cropBounds.bottom,
-    },
-  });
-
-  return finalUri;
+  return rotatedUri;
 }
 
 export function clamp(n: number, min: number, max: number) {
@@ -67,13 +74,17 @@ export interface Sides {
 export const createPanResponder = ({
   onCropUpdate,
   dimensions,
+  scale,
   rotation,
   sides,
+  onDebug,
 }: {
   onCropUpdate?: () => void;
   dimensions: { w: number; h: number };
   rotation: Value;
+  scale: Value;
   sides: Sides;
+  onDebug?: typeof console.log;
 }) => {
   const { left, right, top, bottom } = sides;
 
@@ -86,7 +97,26 @@ export const createPanResponder = ({
       bottom?.setOffset((bottom as Value)._value);
     },
     onPanResponderMove: (e, gestureState) => {
-      const { dx, dy } = gestureState;
+      const { dx: rawDx, dy: rawDy } = gestureState;
+
+      const s = scale._value;
+
+      let dx = rawDx;
+      let dy = rawDy;
+      const r = Math.round(rotation._value * 4) % 4;
+      if (r === 1) {
+        dx = rawDy;
+        dy = -rawDx;
+      } else if (r === 2) {
+        dx = -rawDx;
+        dy = -rawDy;
+      } else if (r === 3) {
+        dx = -rawDy;
+        dy = rawDx;
+      }
+
+      dx /= s;
+      dy /= s;
 
       // Clamp values within bounds
       let dl = left ? clamp(dx, -left._offset, dimensions.w - left._offset) : 0;
@@ -115,6 +145,11 @@ export const createPanResponder = ({
           db = -dt;
         }
       }
+
+      // dl /= s;
+      // dr /= s;
+      // dt /= s;
+      // db /= s;
 
       return Animated.event(
         [
