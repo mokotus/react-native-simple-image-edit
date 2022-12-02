@@ -1,18 +1,19 @@
 import { Animated } from 'react-native';
 import React, { useMemo } from 'react';
 import { createPanResponder, Sides, Value } from '../Util';
-import { CropBounds } from './Cropper';
 
 interface Props {
   sides: Sides;
   onCropUpdate?: () => void;
   dimensions: { w: number; h: number };
+  rotation: Value;
 }
 
 export default function CropperHandle({
   sides,
   onCropUpdate,
   dimensions,
+  rotation,
 }: Props) {
   const { left, right, top, bottom } = sides;
 
@@ -21,9 +22,10 @@ export default function CropperHandle({
       createPanResponder({
         onCropUpdate,
         dimensions,
+        rotation,
         sides,
       }),
-    [dimensions, onCropUpdate, sides],
+    [dimensions, onCropUpdate, sides, rotation],
   );
 
   return (

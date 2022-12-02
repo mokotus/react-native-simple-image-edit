@@ -7,18 +7,33 @@ import {
   // Text,
   Button,
 } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Cropper, { CropBounds } from './components/Cropper';
-import { applyImageEdits } from './Util';
+import { applyImageEdits, Value, ValueXY } from './Util';
 interface Props {
   imageSource?: ImageURISource;
   afterSave: () => void;
+  onDebug?: typeof console.log;
 }
 
-export default function Main({ imageSource, afterSave }: Props) {
+export default function Main({ imageSource, afterSave, onDebug }: Props) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(
     null,
   );
+
+  const [containerDims, setContainerDims] = useState({ w: 1, h: 1 });
+
+  const aspectRatio = (dimensions?.w || 1) / (dimensions?.h || 1);
+
+  const imageWidth = Math.min(containerDims.w, containerDims.h * aspectRatio);
+  const imageHeight = Math.min(containerDims.h, containerDims.w / aspectRatio);
+
+  const resizedDimensions = useMemo(
+    () => new Animated.ValueXY(),
+    [],
+  ) as ValueXY;
+
+  const scale = useMemo(() => new Animated.Value(1), []) as Value;
 
   // Load image dimensions
   useEffect(() => {
@@ -27,18 +42,21 @@ export default function Main({ imageSource, afterSave }: Props) {
         imageSource.uri,
         (w, h) => {
           setDimensions({ w, h });
+          resizedDimensions.setValue({ x: w, y: h });
         },
         () => {
           // TODO: Error
         },
       );
     }
-  }, [dimensions, setDimensions, imageSource?.uri]);
+  }, [dimensions, setDimensions, imageSource?.uri, resizedDimensions]);
 
-  const rotation = useRef(new Animated.Value(0)).current;
+  const rotation = useMemo(() => new Animated.Value(0), []) as Value;
   const [rotationTarget, setRotationTarget] = useState(0);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const [lastRotationTarget, setLastRotationTarget] = useState(0);
 
   // Apply image spin animation
   useEffect(() => {
@@ -46,14 +64,37 @@ export default function Main({ imageSource, afterSave }: Props) {
       toValue: rotationTarget,
       duration: 300,
       easing: (x) => 1 - (1 - x) ** 3,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => {
       if (rotationTarget >= 1) {
         rotation.setValue(rotationTarget % 1);
         setRotationTarget((rotTarget) => rotTarget % 1);
       }
+      setLastRotationTarget(rotationTarget);
     });
   }, [rotation, rotationTarget]);
+
+  useEffect(() => {
+    if (!dimensions) {
+      return;
+    }
+
+    const flipped = Math.round((rotationTarget % 1) * 4) % 2 === 1;
+
+    Animated.timing(scale, {
+      toValue: flipped ? containerDims.h / imageWidth : 1,
+      duration: 300,
+      easing: (x) => 1 - (1 - x) ** 3,
+      useNativeDriver: false,
+    }).start();
+
+    // Animated.timing(resizedDimensions, {
+    //   toValue: { x: flipped ? h : w, y: flipped ? w : h },
+    //   duration: 300,
+    //   easing: (x) => 1 - (1 - x) ** 3,
+    //   useNativeDriver: false,
+    // }).start();
+  }, [rotationTarget, dimensions, scale, containerDims, imageWidth]);
 
   const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
 
@@ -123,55 +164,80 @@ export default function Main({ imageSource, afterSave }: Props) {
         }
       >
               </MaskedView> */}
-      <Animated.Image
-        source={imageSource}
+      <View
+        style={{
+          borderWidth: 1,
+          borderColor: 'red',
+          flex: 1,
+          margin: 40,
+          // marginHorizontal: 200,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
         onLayout={(e) => {
           setPosition({
             x: e.nativeEvent.layout.x,
             y: e.nativeEvent.layout.y,
           });
-        }}
-        style={[
-          {
-            width: dimensions?.w,
-            height: dimensions?.h,
-            opacity: 0.3,
-            // borderColor: 'yellow',
-            // borderWidth: 1,
-          },
-          {
-            transform: [
-              {
-                rotate: rotation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '360deg'],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: position.x,
-          top: position.y,
-          width: dimensions?.w,
-          height: dimensions?.h,
-          borderColor: 'green',
-          borderWidth: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
+          setContainerDims({
+            w: e.nativeEvent.layout.width,
+            h: e.nativeEvent.layout.height,
+          });
         }}
       >
-        {dimensions && position && (
-          <Cropper
-            imageSource={imageSource}
-            dimensions={dimensions || undefined}
-            position={position}
-            onBoundsChanged={setCropBounds}
-          />
-        )}
+        <Animated.Image
+          source={imageSource}
+          resizeMode="contain"
+          style={[
+            {
+              width: imageWidth,
+              height: imageHeight,
+              // flex: 1,
+              // width: '100%',
+              // height: '100%',
+              opacity: 0.3,
+              borderColor: 'yellow',
+              borderWidth: 1,
+            },
+            {
+              transform: [
+                {
+                  rotate: rotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+                {
+                  scale,
+                },
+              ],
+            },
+          ]}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            borderColor: 'green',
+            borderWidth: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {dimensions && position && (
+            <Cropper
+              imageSource={imageSource}
+              dimensions={dimensions || undefined}
+              position={position}
+              onBoundsChanged={setCropBounds}
+              rotation={rotation}
+              lastRotationTarget={lastRotationTarget}
+            />
+          )}
+        </View>
       </View>
     </View>
   );

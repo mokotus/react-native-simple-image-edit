@@ -55,6 +55,7 @@ export function clamp(n: number, min: number, max: number) {
 }
 
 export type Value = Animated.Value & { _value: number; _offset: number };
+export type ValueXY = Animated.ValueXY & { x: Value; y: Value };
 
 export interface Sides {
   left?: Value;
@@ -66,10 +67,12 @@ export interface Sides {
 export const createPanResponder = ({
   onCropUpdate,
   dimensions,
+  rotation,
   sides,
 }: {
   onCropUpdate?: () => void;
   dimensions: { w: number; h: number };
+  rotation: Value;
   sides: Sides;
 }) => {
   const { left, right, top, bottom } = sides;
