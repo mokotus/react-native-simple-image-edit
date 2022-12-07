@@ -14,8 +14,8 @@ export default function CropperHandle({ sides, onCropUpdate, color }: Props) {
 
   const { dimensions, rotation, scale, onDebug } = useContext(ImageContext);
 
-  const responder = useMemo(
-    () =>
+  const responder = useMemo(() => {
+    return (
       rotation &&
       scale &&
       createPanResponder({
@@ -24,11 +24,12 @@ export default function CropperHandle({ sides, onCropUpdate, color }: Props) {
         rotation,
         scale,
         sides,
-      }),
-    [dimensions, onCropUpdate, sides, rotation, scale],
-  );
+        onDebug,
+      })
+    );
+  }, [dimensions, onCropUpdate, rotation, scale]);
 
-  onDebug?.('handle');
+  // onDebug?.('handle');
 
   return (
     <Animated.View

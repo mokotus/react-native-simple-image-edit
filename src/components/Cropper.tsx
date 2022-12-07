@@ -246,13 +246,12 @@ export default function Cropper({ imageSource, onBoundsChanged }: Props) {
             top,
             right,
             bottom,
-            borderColor: 'red',
-            borderWidth: 1,
+            borderColor: 'white',
+            borderWidth: 2,
             justifyContent: 'center',
             alignItems: 'center',
           },
         ]}
-        {...generalPan?.panHandlers}
       >
         <Animated.View
           style={{
@@ -263,6 +262,7 @@ export default function Cropper({ imageSource, onBoundsChanged }: Props) {
             right: 0,
             overflow: 'hidden',
           }}
+          {...generalPan?.panHandlers}
         >
           {/* <Animated.Image
             source={imageSource}

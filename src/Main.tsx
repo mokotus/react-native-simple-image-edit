@@ -121,8 +121,6 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
     [dimensions, rotationTarget, rotation, scale, onDebug],
   );
 
-  onDebug?.('hi');
-
   return (
     <ImageContext.Provider value={imageValues}>
       <View
@@ -225,7 +223,7 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
                   // flex: 1,
                   // width: '100%',
                   // height: '100%',
-                  opacity: 0.3,
+                  opacity: 0.6,
                   borderColor: 'yellow',
                   borderWidth: 1,
                 },
