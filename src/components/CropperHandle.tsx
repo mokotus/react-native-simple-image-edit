@@ -48,7 +48,7 @@ export default function CropperHandle({ sides, color }: Props) {
           right: right && -size,
           width: size * 2,
           height: size * 2,
-          backgroundColor: color ? 'orange' : 'gray',
+          backgroundColor: color ? 'teal' : 'gray',
           borderRadius: 100,
         }}
         // {...responder?.panHandlers}
