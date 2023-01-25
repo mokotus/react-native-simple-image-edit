@@ -8,7 +8,6 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "postinstall": "yarn && tsc",
   "keywords": [
     "react-native"
   ],
