@@ -1,50 +1,58 @@
-import { Animated } from 'react-native';
 import React, { useMemo, useContext } from 'react';
-import { createPanResponder, Sides, Value } from '../Util';
+import { Sides } from '../Utils';
 import { ImageContext } from '../Main';
+import useResizeHandler from '../useResizeHandler';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 
 interface Props {
   sides: Sides;
-  onCropUpdate?: () => void;
   color?: boolean;
 }
 
-export default function CropperHandle({ sides, onCropUpdate, color }: Props) {
+export default function CropperHandle({ sides, color }: Props) {
   const { left, right, top, bottom } = sides;
 
-  const { dimensions, rotation, scale, onDebug } = useContext(ImageContext);
+  // const { dimensions, rotation, scale, onDebug } = useContext(ImageContext);
+  // const context = useContext(ImageContext);
 
-  const responder = useMemo(() => {
-    return (
-      rotation &&
-      scale &&
-      createPanResponder({
-        onCropUpdate,
-        dimensions,
-        rotation,
-        scale,
-        sides,
-        onDebug,
-      })
-    );
-  }, [dimensions, onCropUpdate, rotation, scale]);
+  // const responder = useMemo(() => {
+  //   return (
+  //     rotation &&
+  //     scale &&
+  //     createPanResponder({
+  //       onCropUpdate,
+  //       dimensions,
+  //       rotation,
+  //       scale,
+  //       sides,
+  //       onDebug,
+  //     })
+  //   );
+  // }, [dimensions, onCropUpdate, rotation, scale]);
 
   // onDebug?.('handle');
 
+  const panHandler = useResizeHandler(sides);
+
+  const size = 15;
+
   return (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        bottom: bottom && -20,
-        left: left && -20,
-        top: top && -20,
-        right: right && -20,
-        width: 40,
-        height: 40,
-        backgroundColor: color ? 'orange' : 'gray',
-        borderRadius: 100,
-      }}
-      {...responder?.panHandlers}
-    />
+    <PanGestureHandler onGestureEvent={panHandler}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          bottom: bottom && -size,
+          left: left && -size,
+          top: top && -size,
+          right: right && -size,
+          width: size * 2,
+          height: size * 2,
+          backgroundColor: color ? 'orange' : 'gray',
+          borderRadius: 100,
+        }}
+        // {...responder?.panHandlers}
+      />
+    </PanGestureHandler>
   );
 }

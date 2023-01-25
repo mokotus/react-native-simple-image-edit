@@ -3,156 +3,321 @@ import {
   Image,
   StyleSheet,
   ImageURISource,
-  Animated,
   // Text,
   Button,
+  Text,
 } from 'react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Cropper, { CropBounds } from './components/Cropper';
-import { applyImageEdits, Value, ValueXY } from './Util';
+import { applyImageEdits } from './Utils';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  SharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 interface Props {
   imageSource?: ImageURISource;
-  afterSave: () => void;
+  afterSave: (uri: string) => void;
   onDebug?: typeof console.log;
 }
 
 interface ImageContextProps {
-  dimensions: { w: number; h: number };
-  rotationTarget: number;
-  rotation?: Value;
-  scale?: Value;
-  onDebug?: typeof console.log;
+  imageWidth: SharedValue<number>;
+  imageHeight: SharedValue<number>;
+  dimensions: SharedValue<Size | null>;
+  rotationTarget: SharedValue<number>;
+  rotation: SharedValue<number>;
+  scale: SharedValue<number>;
+  minCropperSize: Size;
+  cropperSides: {
+    left: SharedValue<number>;
+    right: SharedValue<number>;
+    top: SharedValue<number>;
+    bottom: SharedValue<number>;
+  };
 }
 
-export const ImageContext = React.createContext<ImageContextProps>({
-  dimensions: { w: 1, h: 1 },
-  rotationTarget: 0,
-});
+interface Position {
+  x: number;
+  y: number;
+}
 
-export default function Main({ imageSource, afterSave, onDebug }: Props) {
-  const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(
-    null,
-  );
+interface Size {
+  w: number;
+  h: number;
+}
 
-  const [containerDims, setContainerDims] = useState({ w: 1, h: 1 });
+export const ImageContext = React.createContext<ImageContextProps | null>(null);
 
-  const aspectRatio = (dimensions?.w || 1) / (dimensions?.h || 1);
+export default function Main({ imageSource, afterSave }: Props) {
+  // const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(
+  //   null,
+  // );
 
-  const imageWidth = Math.min(containerDims.w, containerDims.h * aspectRatio);
-  const imageHeight = Math.min(containerDims.h, containerDims.w / aspectRatio);
+  const cropperLeft = useSharedValue(0);
+  const cropperRight = useSharedValue(0);
+  const cropperTop = useSharedValue(0);
+  const cropperBottom = useSharedValue(0);
 
-  const resizedDimensions = useMemo(
-    () => new Animated.ValueXY(),
-    [],
-  ) as ValueXY;
+  const dimensions = useSharedValue<Size | null>(null);
 
-  const scale = useMemo(() => new Animated.Value(1), []) as Value;
+  // const [containerDims, setContainerDims] = useState({ w: 1, h: 1 });
+  const containerDims = useSharedValue<Size>({
+    w: 1,
+    h: 1,
+  });
+
+  const aspectRatio = useDerivedValue(() => {
+    return (dimensions.value?.w || 1) / (dimensions.value?.h || 1);
+  });
+
+  const imageWidth = useDerivedValue(() => {
+    return Math.min(
+      containerDims.value.w,
+      containerDims.value.h * aspectRatio.value,
+    );
+  });
+
+  const imageHeight = useDerivedValue(() => {
+    return Math.min(
+      containerDims.value.h,
+      containerDims.value.w / aspectRatio.value,
+    );
+  });
+
+  // const resizedDimensions = useMemo(
+  //   () => new Animated.ValueXY(),
+  //   [],
+  // ) as ValueXY;
+
+  const resizedDimensions = useSharedValue<{ w: number; h: number }>({
+    w: 0,
+    h: 0,
+  });
+
+  // const scale = useMemo(() => new Animated.Value(1), []) as Value;
 
   // Load image dimensions
   useEffect(() => {
-    if (!dimensions && imageSource?.uri) {
+    if (dimensions.value === null && imageSource?.uri) {
       Image.getSize(
         imageSource.uri,
         (w, h) => {
-          setDimensions({ w, h });
-          resizedDimensions.setValue({ x: w, y: h });
+          console.log('LOAD', w, h);
+          // setDimensions({ w, h });
+          dimensions.value = { w, h };
+          // resizedDimensions.setValue({ x: w, y: h });
+          resizedDimensions.value = { w, h };
         },
         () => {
           // TODO: Error
         },
       );
     }
-  }, [dimensions, setDimensions, imageSource?.uri, resizedDimensions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageSource?.uri]);
 
-  const rotation = useMemo(() => new Animated.Value(0), []) as Value;
-  const [rotationTarget, setRotationTarget] = useState(0);
+  // const rotation = useMemo(() => new Animated.Value(0), []) as Value;
+  // const [rotationTarget, setRotationTarget] = useState(0);
+  const rotationTarget = useSharedValue(0);
+  // const rotation = useSharedValue(0);
+  const rotation = useDerivedValue(() => withTiming(rotationTarget.value));
+  // const rotation = useDerivedValue(() =>
+  //   withTiming(rotationTarget.value, {}, (finished) => {
+  //     if (finished) rotationTarget.value = rotationTarget.value % 1;
+  //   }),
+  // )
+  // const rotation = useDerivedValue(() => );
+  // const rotation = useDerivedValue(() => {
+  //   return withTiming(rotationTarget.value);
+  // });
 
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const position = useSharedValue<Position>({ x: 0, y: 0 });
+  // const [position, setPosition] = useState({ x: 0, y: 0 });
 
   // Apply image spin animation
-  useEffect(() => {
-    Animated.timing(rotation, {
-      toValue: rotationTarget,
-      duration: 300,
-      easing: (x) => 1 - (1 - x) ** 3,
-      useNativeDriver: false,
-    }).start(() => {
-      if (rotationTarget >= 1) {
-        rotation.setValue(rotationTarget % 1);
-        setRotationTarget((rotTarget) => rotTarget % 1);
-      }
-    });
-  }, [rotation, rotationTarget]);
+  // useEffect(() => {
+  //   Animated.timing(rotation, {
+  //     toValue: rotationTarget,
+  //     duration: 300,
+  //     easing: (x) => 1 - (1 - x) ** 3,
+  //     useNativeDriver: false,
+  //   }).start(() => {
+  //     if (rotationTarget >= 1) {
+  //       rotation.setValue(rotationTarget % 1);
+  //       setRotationTarget((rotTarget) => rotTarget % 1);
+  //     }
+  //   });
+  // }, [rotation, rotationTarget]);
 
-  useEffect(() => {
-    if (!dimensions) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!dimensions) {
+  //     return;
+  //   }
 
-    const flipped = Math.round((rotationTarget % 1) * 4) % 2 === 1;
+  //   // const flipped = Math.round((rotationTarget % 1) * 4) % 2 === 1;
 
-    // onDebug?.('rot', rotationTarget);
+  //   // onDebug?.('rot', rotationTarget);
 
-    Animated.timing(scale, {
-      toValue: flipped ? containerDims.h / imageWidth : 1,
-      duration: 300,
-      easing: (x) => 1 - (1 - x) ** 3,
-      useNativeDriver: false,
-    }).start();
+  //   // Animated.timing(scale, {
+  //   //   toValue: flipped ? containerDims.h / imageWidth : 1,
+  //   //   duration: 300,
+  //   //   easing: (x) => 1 - (1 - x) ** 3,
+  //   //   useNativeDriver: false,
+  //   // }).start();
 
-    // Animated.timing(resizedDimensions, {
-    //   toValue: { x: flipped ? h : w, y: flipped ? w : h },
-    //   duration: 300,
-    //   easing: (x) => 1 - (1 - x) ** 3,
-    //   useNativeDriver: false,
-    // }).start();
-  }, [rotationTarget, dimensions, scale, containerDims, imageWidth]);
+  //   // Animated.timing(resizedDimensions, {
+  //   //   toValue: { x: flipped ? h : w, y: flipped ? w : h },
+  //   //   duration: 300,
+  //   //   easing: (x) => 1 - (1 - x) ** 3,
+  //   //   useNativeDriver: false,
+  //   // }).start();
+  // }, [rotationTarget, dimensions, scale, containerDims, imageWidth]);
 
-  const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
+  // const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
+
+  const scale = useDerivedValue(() => {
+    const vs = containerDims.value.h / imageWidth.value; // Vertical scale
+    return interpolate(
+      rotation.value % 1,
+      [0, 0.25, 0.5, 0.75, 1],
+      [1, vs, 1, vs, 1],
+      Extrapolate.CLAMP,
+    );
+  });
 
   const imageValues = useMemo(
     () => ({
-      dimensions: dimensions || { w: 1, h: 1 },
+      imageWidth,
+      imageHeight,
+      dimensions,
       rotationTarget,
       rotation,
       scale,
-      onDebug,
+      minCropperSize: { w: 40, h: 40 },
+      cropperSides: {
+        left: cropperLeft,
+        right: cropperRight,
+        top: cropperTop,
+        bottom: cropperBottom,
+      },
     }),
-    [dimensions, rotationTarget, rotation, scale, onDebug],
+    [
+      dimensions,
+      rotationTarget,
+      rotation,
+      scale,
+      imageWidth,
+      imageHeight,
+      cropperLeft,
+      cropperRight,
+      cropperBottom,
+      cropperTop,
+    ],
   );
 
+  const imageStyle = useAnimatedStyle(() => {
+    return {
+      // width: 100,
+      // height: 100,
+      width: imageWidth.value,
+      height: imageHeight.value,
+      // flex: 1,
+      // width: '100%',
+      // height: '100%',
+      position: 'relative',
+      borderColor: 'yellow',
+      borderWidth: 2,
+      transform: [
+        {
+          rotate: interpolate(rotation.value, [0, 1], [0, 360]) + 'deg',
+          // rotate: rotation.value,
+        },
+        {
+          scale: scale.value,
+        },
+      ],
+    };
+  });
+
+  const shadowStyles = useAnimatedStyle(() => ({
+    position: 'absolute',
+    backgroundColor: 'black',
+    opacity: 0.5,
+  }));
+
+  const shadowLeftStyle = useAnimatedStyle(() => ({
+    width: cropperLeft.value,
+    left: 0,
+    top: 0,
+    bottom: 0,
+  }));
+
+  const shadowRightStyle = useAnimatedStyle(() => ({
+    width: cropperRight.value,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  }));
+
+  const shadowTopStyle = useAnimatedStyle(() => ({
+    height: cropperTop.value,
+    right: cropperRight.value,
+    left: cropperLeft.value,
+    top: 0,
+  }));
+
+  const shadowBottomStyle = useAnimatedStyle(() => ({
+    height: cropperBottom.value,
+    right: cropperRight.value,
+    left: cropperLeft.value,
+    bottom: 0,
+  }));
+
   return (
-    <ImageContext.Provider value={imageValues}>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: 'black',
-        }}
-      >
-        <View style={{ minHeight: 80, flexDirection: 'row' }}>
-          <Button
-            title="right"
-            onPress={() => {
-              setRotationTarget((rt) => rt + 0.25);
-            }}
-          />
-          <Button
-            title="save"
-            onPress={() => {
-              if (imageSource?.uri && dimensions && cropBounds) {
-                applyImageEdits(imageSource.uri, {
-                  originalWidth: dimensions.w,
-                  originalHeight: dimensions.h,
-                  imageWidth,
-                  imageHeight,
-                  rotation: rotationTarget * 360,
-                  cropBounds,
-                }).then(afterSave);
-              }
-            }}
-          />
-        </View>
-        {/* <MaskedView
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ImageContext.Provider value={imageValues}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'black',
+          }}
+        >
+          <View style={{ minHeight: 80, flexDirection: 'row' }}>
+            <Button
+              title="right"
+              onPress={() => {
+                console.log('right');
+                rotationTarget.value = rotationTarget.value + 0.25;
+              }}
+            />
+            <Button
+              title="save"
+              onPress={() => {
+                if (imageSource?.uri && dimensions.value) {
+                  applyImageEdits(imageSource.uri, {
+                    originalWidth: dimensions.value.w,
+                    originalHeight: dimensions.value.h,
+                    imageWidth: imageWidth.value,
+                    imageHeight: imageHeight.value,
+                    rotation: rotationTarget.value * 360,
+                    cropBounds: {
+                      left: cropperLeft.value,
+                      right: cropperRight.value,
+                      top: cropperTop.value,
+                      bottom: cropperBottom.value,
+                    },
+                  }).then(afterSave);
+                }
+              }}
+            />
+          </View>
+          {/* <MaskedView
         androidRenderingMode="software"
         style={{
           flex: 1,
@@ -190,120 +355,62 @@ export default function Main({ imageSource, afterSave, onDebug }: Props) {
         }
       >
               </MaskedView> */}
-        <View
-          style={{
-            borderWidth: 1,
-            borderColor: 'red',
-            flex: 1,
-            margin: 40,
-            // marginHorizontal: 200,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onLayout={(e) => {
-            onDebug?.('layout');
-            setPosition({
-              x: e.nativeEvent.layout.x,
-              y: e.nativeEvent.layout.y,
-            });
-            setContainerDims({
-              w: e.nativeEvent.layout.width,
-              h: e.nativeEvent.layout.height,
-            });
-          }}
-        >
-          {imageSource && (
-            <Animated.Image
-              source={imageSource}
-              resizeMode="contain"
-              style={[
-                {
-                  width: imageWidth,
-                  height: imageHeight,
-                  // flex: 1,
-                  // width: '100%',
-                  // height: '100%',
-                  opacity: 0.6,
-                  borderColor: 'yellow',
-                  borderWidth: 1,
-                },
-                {
-                  transform: [
-                    {
-                      rotate: rotation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg'],
-                      }),
-                    },
-                    {
-                      scale,
-                    },
-                  ],
-                },
-              ]}
-            />
-          )}
-
           <View
             style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              right: 0,
-              bottom: 0,
-              borderColor: 'green',
               borderWidth: 1,
-              justifyContent: 'center',
+              borderColor: 'red',
+              flex: 1,
+              margin: 40,
+              // marginHorizontal: 200,
               alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onLayout={(e) => {
+              containerDims.value = {
+                w: e.nativeEvent.layout.width,
+                h: e.nativeEvent.layout.height,
+              };
             }}
           >
-            <Animated.View
-              style={[
-                {
-                  width: imageWidth,
-                  height: imageHeight,
-                  borderColor: 'blue',
-                  borderWidth: 1,
-                },
-                {
-                  transform: [
-                    {
-                      rotate: rotation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg'],
-                      }),
-                    },
-                    {
-                      scale,
-                    },
-                  ],
-                },
-              ]}
+            {imageSource && (
+              <Animated.Image
+                source={imageSource}
+                resizeMode="contain"
+                style={imageStyle}
+              />
+            )}
+
+            <View
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                borderColor: 'green',
+                borderWidth: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
-              {dimensions && position && (
+              <Animated.View style={imageStyle}>
+                <Animated.View style={[shadowStyles, shadowLeftStyle]} />
+                <Animated.View style={[shadowStyles, shadowRightStyle]} />
+                <Animated.View style={[shadowStyles, shadowTopStyle]} />
+                <Animated.View style={[shadowStyles, shadowBottomStyle]} />
                 <Cropper
                   imageSource={imageSource}
-                  onBoundsChanged={setCropBounds}
+                  left={cropperLeft}
+                  right={cropperRight}
+                  top={cropperTop}
+                  bottom={cropperBottom}
+                  // onBoundsChanged={setCropBounds}
                 />
-              )}
-            </Animated.View>
+              </Animated.View>
+            </View>
           </View>
         </View>
-      </View>
-    </ImageContext.Provider>
+      </ImageContext.Provider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'column',
-    backgroundColor: 'black',
-    flex: 1,
-  },
-  buttonRow: {
-    width: '100%',
-    minHeight: 80,
-    backgroundColor: 'yellow',
-    flexDirection: 'row',
-  },
-});
