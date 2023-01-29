@@ -75,6 +75,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  shadow: {
+    position: 'absolute',
+    backgroundColor: 'black',
+    opacity: 0.5,
+  },
 });
 
 const Main = forwardRef<ImageEditorRef, Props>(
@@ -195,12 +200,6 @@ const Main = forwardRef<ImageEditorRef, Props>(
       };
     });
 
-    const shadowStyles = useAnimatedStyle(() => ({
-      position: 'absolute',
-      backgroundColor: 'black',
-      opacity: 0.5,
-    }));
-
     const shadowLeftStyle = useAnimatedStyle(() => ({
       width: cropperLeft.value,
       left: 0,
@@ -294,10 +293,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
             )}
             <View style={styles.cropperContainer}>
               <Animated.View style={imageStyle}>
-                <Animated.View style={[shadowStyles, shadowLeftStyle]} />
-                <Animated.View style={[shadowStyles, shadowRightStyle]} />
-                <Animated.View style={[shadowStyles, shadowTopStyle]} />
-                <Animated.View style={[shadowStyles, shadowBottomStyle]} />
+                <Animated.View style={[styles.shadow, shadowLeftStyle]} />
+                <Animated.View style={[styles.shadow, shadowRightStyle]} />
+                <Animated.View style={[styles.shadow, shadowTopStyle]} />
+                <Animated.View style={[styles.shadow, shadowBottomStyle]} />
                 <Cropper
                   left={cropperLeft}
                   right={cropperRight}
