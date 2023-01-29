@@ -22,7 +22,7 @@ interface ImageEditorError extends Error {
   name: 'ImageSizeLoadError';
 }
 
-interface ImageEditorRef {
+export interface ImageEditorRef {
   rotateLeft: () => void;
   rotateRight: () => void;
   save: () => Promise<string>;
