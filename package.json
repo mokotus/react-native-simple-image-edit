@@ -6,6 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "deploy": "./scripts/deploy.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -20,7 +21,6 @@
   "peerDependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.4",
     "@react-native-community/image-editor": "^2.3.0",
-    "@react-native-masked-view/masked-view": "^0.2.8",
     "react-native": ">0.69.0",
     "react-native-gesture-handler": "^2.9.0",
     "react-native-reanimated": "^2.14.4"
