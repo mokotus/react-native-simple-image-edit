@@ -20,8 +20,6 @@ export default function useResizeHandler(sides: Sides) {
       ctx.bottom = bottom?.value || 0;
     },
     onActive: (event, ctx) => {
-      //   if (left) left.value = ctx.left + event.translationX;
-      //   if (right) right.value = ctx.right - event.translationX;
       const rawDx = event.translationX;
       const rawDy = event.translationY;
 
@@ -60,8 +58,6 @@ export default function useResizeHandler(sides: Sides) {
       dy /= scale.value;
 
       const { w, h } = minCropperSize;
-
-      console.log('c', imageWidth, ctx.left, cropperSides.right.value);
 
       // Clamp values within bounds
       let dl = left
@@ -123,10 +119,6 @@ export default function useResizeHandler(sides: Sides) {
       if (right) right.value = ctx.right + dr;
       if (top) top.value = ctx.top + dt;
       if (bottom) bottom.value = ctx.bottom + db;
-    },
-    onEnd: (_) => {
-      // x.value = withSpring(0);
-      //   console.log('end', top.value, bottom.value);
     },
   });
 }
