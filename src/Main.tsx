@@ -25,6 +25,7 @@ interface ImageEditorError extends Error {
 export interface ImageEditorRef {
   rotateLeft: () => void;
   rotateRight: () => void;
+  hasPendingChanges: () => boolean;
   save: () => Promise<string>;
 }
 interface Props {
@@ -236,6 +237,15 @@ const Main = forwardRef<ImageEditorRef, Props>(
         },
         rotateLeft() {
           rotationTarget.value -= 0.25;
+        },
+        hasPendingChanges() {
+          return (
+            rotationTarget.value % 1 !== 0 ||
+            cropperLeft.value > 0 ||
+            cropperRight.value > 0 ||
+            cropperTop.value > 0 ||
+            cropperBottom.value > 0
+          );
         },
         async save() {
           if (imageSource?.uri === undefined)
