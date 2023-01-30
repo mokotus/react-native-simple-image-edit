@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useState,
 } from 'react';
 import { Image, ImageURISource, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -115,7 +116,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
       );
     });
 
-    const resizedDimensions = useSharedValue<{ w: number; h: number }>({
+    const resizedDimensions = useSharedValue<Size>({
       w: 0,
       h: 0,
     });
@@ -148,7 +149,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
       const vs = containerDims.value.h / imageWidth.value; // Vertical scale
       const s = Math.min(hs, vs);
       return interpolate(
-        rotation.value % 1,
+        Math.abs(rotation.value) % 1,
         [0, 0.25, 0.5, 0.75, 1],
         [1, s, 1, s, 1],
         Extrapolate.CLAMP,
@@ -229,6 +230,14 @@ const Main = forwardRef<ImageEditorRef, Props>(
       bottom: 0,
     }));
 
+    const [oldValues, setOldValues] = useState<{
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      rotation: number;
+    } | null>(null);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -239,6 +248,16 @@ const Main = forwardRef<ImageEditorRef, Props>(
           rotationTarget.value -= 0.25;
         },
         hasPendingChanges() {
+          if (
+            oldValues !== null &&
+            oldValues.rotation === rotationTarget.value &&
+            oldValues.left === cropperLeft.value &&
+            oldValues.right === cropperRight.value &&
+            oldValues.top === cropperTop.value &&
+            oldValues.bottom === cropperBottom.value
+          ) {
+            return false;
+          }
           return (
             rotationTarget.value % 1 !== 0 ||
             cropperLeft.value > 0 ||
@@ -254,18 +273,30 @@ const Main = forwardRef<ImageEditorRef, Props>(
             return Promise.reject(
               'Cannot save: Image dimensions not loaded yet',
             );
+
+          const values = {
+            rotation: rotationTarget.value,
+            left: cropperLeft.value,
+            right: cropperRight.value,
+            top: cropperTop.value,
+            bottom: cropperBottom.value,
+          };
+
           return applyImageEdits(imageSource.uri, {
             originalWidth: dimensions.value.w,
             originalHeight: dimensions.value.h,
             imageWidth: imageWidth.value,
             imageHeight: imageHeight.value,
-            rotation: rotationTarget.value * 360,
+            rotation: values.rotation * 360,
             cropBounds: {
-              left: cropperLeft.value,
-              right: cropperRight.value,
-              top: cropperTop.value,
-              bottom: cropperBottom.value,
+              left: values.left,
+              right: values.right,
+              top: values.top,
+              bottom: values.bottom,
             },
+          }).then((url) => {
+            setOldValues(values);
+            return url;
           });
         },
       }),
@@ -279,6 +310,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
         rotationTarget,
         imageWidth,
         imageHeight,
+        oldValues,
       ],
     );
 
