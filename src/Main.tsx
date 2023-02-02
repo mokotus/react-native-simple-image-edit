@@ -326,7 +326,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
               };
             }}
           >
-            {imageSource && (
+            {imageSource && dimensions !== null && (
               <Animated.Image
                 source={imageSource}
                 resizeMode="contain"
