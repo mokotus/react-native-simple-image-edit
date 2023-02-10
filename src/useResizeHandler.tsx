@@ -30,12 +30,12 @@ export default function useResizeHandler(sides: Sides) {
         rotationTarget,
         dimensions,
         minCropperSize,
-        imageWidth,
-        imageHeight,
+        imageViewSize,
         cropperSides,
       } = imageContext;
       if (dimensions.value === null) return;
       if (rotation.value !== rotationTarget.value) return;
+      if (imageViewSize.value === null) return;
 
       const clamp = (n: number, min: number, max: number) =>
         n > max ? max : n < min ? min : n;
@@ -65,7 +65,7 @@ export default function useResizeHandler(sides: Sides) {
             dx,
             -ctx.left,
             -ctx.left +
-              imageWidth.value -
+              imageViewSize.value.w -
               (right ? 0 : cropperSides.right.value + w),
           )
         : 0;
@@ -74,7 +74,7 @@ export default function useResizeHandler(sides: Sides) {
             -dx,
             -ctx.right,
             -ctx.right +
-              imageWidth.value -
+              imageViewSize.value.w -
               (left ? 0 : cropperSides.left.value + w),
           )
         : 0;
@@ -83,7 +83,7 @@ export default function useResizeHandler(sides: Sides) {
             dy,
             -ctx.top,
             -ctx.top +
-              imageHeight.value -
+              imageViewSize.value.h -
               (bottom ? 0 : cropperSides.bottom.value + h),
           )
         : 0;
@@ -92,7 +92,7 @@ export default function useResizeHandler(sides: Sides) {
             -dy,
             -ctx.bottom,
             -ctx.bottom +
-              imageHeight.value -
+              imageViewSize.value.h -
               (top ? 0 : cropperSides.top.value + h),
           )
         : 0;

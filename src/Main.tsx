@@ -36,8 +36,7 @@ interface Props {
 }
 
 interface ImageContextProps {
-  imageWidth: SharedValue<number>;
-  imageHeight: SharedValue<number>;
+  imageViewSize: SharedValue<Size | null>;
   dimensions: SharedValue<Size | null>;
   rotationTarget: SharedValue<number>;
   rotation: SharedValue<number>;
@@ -91,34 +90,25 @@ const Main = forwardRef<ImageEditorRef, Props>(
     const cropperTop = useSharedValue(0);
     const cropperBottom = useSharedValue(0);
 
-    const dimensions = useSharedValue<Size | null>(null);
+    const imageSourceSize = useSharedValue<Size | null>(null);
 
-    const containerDims = useSharedValue<Size>({
-      w: 1,
-      h: 1,
-    });
+    const containerSize = useSharedValue<Size | null>(null);
 
     const aspectRatio = useDerivedValue(() => {
-      return (dimensions.value?.w || 1) / (dimensions.value?.h || 1);
+      return (imageSourceSize.value?.w || 1) / (imageSourceSize.value?.h || 1);
     });
 
-    const imageWidth = useDerivedValue(() => {
-      return Math.min(
-        containerDims.value.w,
-        containerDims.value.h * aspectRatio.value,
+    const imageViewSize = useDerivedValue<Size | null>(() => {
+      if (containerSize.value === null) return null;
+      const w = Math.min(
+        containerSize.value.w,
+        containerSize.value.h * aspectRatio.value,
       );
-    });
-
-    const imageHeight = useDerivedValue(() => {
-      return Math.min(
-        containerDims.value.h,
-        containerDims.value.w / aspectRatio.value,
+      const h = Math.min(
+        containerSize.value.h,
+        containerSize.value.w / aspectRatio.value,
       );
-    });
-
-    const resizedDimensions = useSharedValue<Size>({
-      w: 0,
-      h: 0,
+      return { w, h };
     });
 
     // Load image dimensions
@@ -127,8 +117,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
         Image.getSize(
           imageSource.uri,
           (w, h) => {
-            dimensions.value = { w, h };
-            resizedDimensions.value = { w, h };
+            imageSourceSize.value = { w, h };
           },
           () => {
             onError?.({
@@ -145,8 +134,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
     const rotation = useDerivedValue(() => withTiming(rotationTarget.value));
 
     const scale = useDerivedValue(() => {
-      const hs = containerDims.value.w / imageHeight.value; // Horizontal scale
-      const vs = containerDims.value.h / imageWidth.value; // Vertical scale
+      if (containerSize.value === null || imageViewSize.value === null)
+        return 1;
+      const hs = containerSize.value.w / imageViewSize.value.h; // Horizontal scale
+      const vs = containerSize.value.h / imageViewSize.value.w; // Vertical scale
       const s = Math.min(hs, vs);
       return interpolate(
         Math.abs(rotation.value) % 1,
@@ -158,9 +149,8 @@ const Main = forwardRef<ImageEditorRef, Props>(
 
     const imageValues = useMemo(
       () => ({
-        imageWidth,
-        imageHeight,
-        dimensions,
+        imageViewSize,
+        dimensions: imageSourceSize,
         rotationTarget,
         rotation,
         scale,
@@ -173,12 +163,11 @@ const Main = forwardRef<ImageEditorRef, Props>(
         },
       }),
       [
-        dimensions,
+        imageSourceSize,
         rotationTarget,
         rotation,
         scale,
-        imageWidth,
-        imageHeight,
+        imageViewSize,
         cropperLeft,
         cropperRight,
         cropperBottom,
@@ -188,8 +177,8 @@ const Main = forwardRef<ImageEditorRef, Props>(
 
     const imageStyle = useAnimatedStyle(() => {
       return {
-        width: imageWidth.value,
-        height: imageHeight.value,
+        width: imageViewSize.value?.w,
+        height: imageViewSize.value?.h,
         position: 'relative',
         transform: [
           {
@@ -269,7 +258,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
         async save() {
           if (imageSource?.uri === undefined)
             return Promise.reject('Cannot save: No image URI set');
-          if (dimensions.value === null)
+          if (imageSourceSize.value === null || imageViewSize.value === null)
             return Promise.reject(
               'Cannot save: Image dimensions not loaded yet',
             );
@@ -283,10 +272,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
           };
 
           return applyImageEdits(imageSource.uri, {
-            originalWidth: dimensions.value.w,
-            originalHeight: dimensions.value.h,
-            imageWidth: imageWidth.value,
-            imageHeight: imageHeight.value,
+            originalWidth: imageSourceSize.value.w,
+            originalHeight: imageSourceSize.value.h,
+            imageWidth: imageViewSize.value.w,
+            imageHeight: imageViewSize.value.h,
             rotation: values.rotation * 360,
             cropBounds: {
               left: values.left,
@@ -305,11 +294,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
         cropperRight,
         cropperTop,
         cropperBottom,
-        dimensions,
+        imageSourceSize,
         imageSource?.uri,
         rotationTarget,
-        imageWidth,
-        imageHeight,
+        imageViewSize?.value,
         oldValues,
       ],
     );
@@ -320,13 +308,13 @@ const Main = forwardRef<ImageEditorRef, Props>(
           <View
             style={styles.container}
             onLayout={(e) => {
-              containerDims.value = {
+              containerSize.value = {
                 w: e.nativeEvent.layout.width,
                 h: e.nativeEvent.layout.height,
               };
             }}
           >
-            {imageSource && dimensions !== null && (
+            {imageSource && imageSourceSize !== null && (
               <Animated.Image
                 source={imageSource}
                 resizeMode="contain"
