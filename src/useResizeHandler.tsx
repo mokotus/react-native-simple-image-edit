@@ -43,13 +43,14 @@ export default function useResizeHandler(sides: Sides) {
       let dx = rawDx;
       let dy = rawDy;
       const r = Math.round(rotationTarget.value * 4) % 4;
-      if (r === 1) {
+
+      if (r === 1 || r === -3) {
         dx = rawDy;
         dy = -rawDx;
-      } else if (r === 2) {
+      } else if (r === 2 || r === -2) {
         dx = -rawDx;
         dy = -rawDy;
-      } else if (r === 3) {
+      } else if (r === 3 || r === -1) {
         dx = -rawDy;
         dy = rawDx;
       }
