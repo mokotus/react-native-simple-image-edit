@@ -111,13 +111,17 @@ const Main = forwardRef<ImageEditorRef, Props>(
       return { w, h };
     });
 
-    // Load image dimensions
-    useEffect(() => {
+    const loadSize = (c: number = 0) => {
       if (imageSource?.uri !== undefined) {
         Image.getSize(
           imageSource.uri,
           (w, h) => {
-            imageSourceSize.value = { w, h };
+            // iOS sometimes returns 0 for width and height. Retry.
+            if ((w === 0 || h === 0) && c < 2) {
+              setTimeout(() => loadSize(c + 1), 100);
+            } else {
+              imageSourceSize.value = { w, h };
+            }
           },
           () => {
             onError?.({
@@ -127,6 +131,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
           },
         );
       }
+    };
+
+    useEffect(() => {
+      loadSize();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [imageSource?.uri]);
 
