@@ -37,7 +37,7 @@ interface Props {
 
 interface ImageContextProps {
   imageViewSize: SharedValue<Size | null>;
-  dimensions: SharedValue<Size | null>;
+  dimensions: Size | null;
   rotationTarget: SharedValue<number>;
   rotation: SharedValue<number>;
   scale: SharedValue<number>;
@@ -90,24 +90,20 @@ const Main = forwardRef<ImageEditorRef, Props>(
     const cropperTop = useSharedValue(0);
     const cropperBottom = useSharedValue(0);
 
-    const imageSourceSize = useSharedValue<Size | null>(null);
+    // const imageSourceSize = useSharedValue<Size | null>(null);
+    const [imageSourceSize, setImageSourceSize] = useState<Size | null>(null);
 
-    const containerSize = useSharedValue<Size | null>(null);
+    // const containerSize = useSharedValue<Size | null>(null);
+    const [containerSize, setContainerSize] = useState<Size | null>(null);
 
     const aspectRatio = useDerivedValue(() => {
-      return (imageSourceSize.value?.w || 1) / (imageSourceSize.value?.h || 1);
+      return (imageSourceSize?.w || 1) / (imageSourceSize?.h || 1);
     });
 
     const imageViewSize = useDerivedValue<Size | null>(() => {
-      if (containerSize.value === null) return null;
-      const w = Math.min(
-        containerSize.value.w,
-        containerSize.value.h * aspectRatio.value,
-      );
-      const h = Math.min(
-        containerSize.value.h,
-        containerSize.value.w / aspectRatio.value,
-      );
+      if (containerSize === null) return null;
+      const w = Math.min(containerSize.w, containerSize.h * aspectRatio.value);
+      const h = Math.min(containerSize.h, containerSize.w / aspectRatio.value);
       return { w, h };
     });
 
@@ -120,7 +116,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
             if ((w === 0 || h === 0) && c < 2) {
               setTimeout(() => loadSize(c + 1), 100);
             } else {
-              imageSourceSize.value = { w, h };
+              setImageSourceSize({ w, h });
             }
           },
           () => {
@@ -142,10 +138,9 @@ const Main = forwardRef<ImageEditorRef, Props>(
     const rotation = useDerivedValue(() => withTiming(rotationTarget.value));
 
     const scale = useDerivedValue(() => {
-      if (containerSize.value === null || imageViewSize.value === null)
-        return 1;
-      const hs = containerSize.value.w / imageViewSize.value.h; // Horizontal scale
-      const vs = containerSize.value.h / imageViewSize.value.w; // Vertical scale
+      if (containerSize === null || imageViewSize.value === null) return 1;
+      const hs = containerSize.w / imageViewSize.value.h; // Horizontal scale
+      const vs = containerSize.h / imageViewSize.value.w; // Vertical scale
       const s = Math.min(hs, vs);
       return interpolate(
         Math.abs(rotation.value) % 1,
@@ -266,7 +261,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
         async save() {
           if (imageSource?.uri === undefined)
             return Promise.reject('Cannot save: No image URI set');
-          if (imageSourceSize.value === null || imageViewSize.value === null)
+          if (imageSourceSize === null || imageViewSize.value === null)
             return Promise.reject(
               'Cannot save: Image dimensions not loaded yet',
             );
@@ -280,8 +275,8 @@ const Main = forwardRef<ImageEditorRef, Props>(
           };
 
           return applyImageEdits(imageSource.uri, {
-            originalWidth: imageSourceSize.value.w,
-            originalHeight: imageSourceSize.value.h,
+            originalWidth: imageSourceSize.w,
+            originalHeight: imageSourceSize.h,
             imageWidth: imageViewSize.value.w,
             imageHeight: imageViewSize.value.h,
             rotation: values.rotation * 360,
@@ -316,10 +311,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
           <View
             style={styles.container}
             onLayout={(e) => {
-              containerSize.value = {
+              setContainerSize({
                 w: e.nativeEvent.layout.width,
                 h: e.nativeEvent.layout.height,
-              };
+              });
             }}
           >
             {imageSource && (

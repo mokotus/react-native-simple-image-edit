@@ -33,7 +33,7 @@ export default function useResizeHandler(sides: Sides) {
         imageViewSize,
         cropperSides,
       } = imageContext;
-      if (dimensions.value === null) return;
+      if (dimensions === null) return;
       if (rotation.value !== rotationTarget.value) return;
       if (imageViewSize.value === null) return;
 
