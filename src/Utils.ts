@@ -55,17 +55,17 @@ export async function applyImageEdits(
 
   // console.log('Exif', exifData);
 
-  const downloadedImage = await RNFetchBlob.config({ fileCache: true }).fetch(
-    'GET',
-    uri,
-  );
+  let finalPath: string = uri;
+  let finalFile = null;
 
-  const dPath =
-    Platform.OS === 'android'
-      ? 'file://' + downloadedImage.path()
-      : downloadedImage.path();
+  if (!uri.startsWith('file://')) {
+    finalFile = await RNFetchBlob.config({ fileCache: true }).fetch('GET', uri);
+    finalPath = finalFile.path();
+  }
 
-  const exifData = await Exif.getExif(dPath);
+  // const dPath = Platform.OS === 'android' ? 'file:////' + finalPath : finalPath;
+
+  const exifData = await Exif.getExif(finalPath);
   const orientation = exifData.Orientation;
 
   let x = cropBounds.left;
@@ -87,7 +87,7 @@ export async function applyImageEdits(
     height = imageWidth - cropBounds.left - cropBounds.right;
   }
 
-  const croppedUri = await ImageEditor.cropImage(dPath, {
+  const croppedUri = await ImageEditor.cropImage(finalPath, {
     offset: {
       x: x * dx,
       y: y * dy,
@@ -113,7 +113,7 @@ export async function applyImageEdits(
     },
   );
 
-  downloadedImage.flush();
+  finalFile?.flush();
 
   return rotatedUri;
 }
