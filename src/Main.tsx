@@ -27,7 +27,7 @@ export interface ImageEditorRef {
   rotateLeft: () => void;
   rotateRight: () => void;
   hasPendingChanges: () => boolean;
-  save: () => Promise<string>;
+  save: (quality?: number) => Promise<string>;
 }
 interface Props {
   ref: React.RefObject<ImageEditorRef>;
@@ -258,7 +258,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
             cropperBottom.value > 0
           );
         },
-        async save() {
+        async save(quality?: number) {
           if (imageSource?.uri === undefined)
             return Promise.reject('Cannot save: No image URI set');
           if (imageSourceSize === null || imageViewSize.value === null)
@@ -280,6 +280,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
             imageWidth: imageViewSize.value.w,
             imageHeight: imageViewSize.value.h,
             rotation: values.rotation * 360,
+            quality,
             cropBounds: {
               left: values.left,
               right: values.right,
