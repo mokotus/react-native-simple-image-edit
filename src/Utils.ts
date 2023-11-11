@@ -1,11 +1,10 @@
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 import ImageEditor from '@react-native-community/image-editor';
-import { Platform } from 'react-native';
 import { SharedValue } from 'react-native-reanimated';
 import { CropBounds } from './components/Cropper';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 //@ts-ignore
 import Exif from 'react-native-exif';
-import RNFetchBlob from 'rn-fetch-blob';
 
 export interface Position {
   x: number;
@@ -59,7 +58,10 @@ export async function applyImageEdits(
   let finalFile = null;
 
   if (!uri.startsWith('file://')) {
-    finalFile = await RNFetchBlob.config({ fileCache: true }).fetch('GET', uri);
+    finalFile = await ReactNativeBlobUtil.config({ fileCache: true }).fetch(
+      'GET',
+      uri,
+    );
     finalPath = finalFile.path();
   }
 
