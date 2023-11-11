@@ -23,11 +23,17 @@ interface ImageEditorError extends Error {
   name: 'ImageSizeLoadError';
 }
 
+export type ImageSaveOptions = {
+  quality?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+};
+
 export interface ImageEditorRef {
   rotateLeft: () => void;
   rotateRight: () => void;
   hasPendingChanges: () => boolean;
-  save: (quality?: number) => Promise<string>;
+  save: (options?: ImageSaveOptions) => Promise<string>;
 }
 interface Props {
   ref: React.RefObject<ImageEditorRef>;
@@ -258,7 +264,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
             cropperBottom.value > 0
           );
         },
-        async save(quality?: number) {
+        async save(options?: ImageSaveOptions) {
           if (imageSource?.uri === undefined)
             return Promise.reject('Cannot save: No image URI set');
           if (imageSourceSize === null || imageViewSize.value === null)
@@ -280,7 +286,9 @@ const Main = forwardRef<ImageEditorRef, Props>(
             imageWidth: imageViewSize.value.w,
             imageHeight: imageViewSize.value.h,
             rotation: values.rotation * 360,
-            quality,
+            quality: options?.quality,
+            maxWidth: options?.maxWidth,
+            maxHeight: options?.maxHeight,
             cropBounds: {
               left: values.left,
               right: values.right,

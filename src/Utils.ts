@@ -33,6 +33,8 @@ interface EditedImageValues {
   quality?: number;
   rotation?: number;
   cropBounds: CropBounds;
+  maxWidth?: number;
+  maxHeight?: number;
 }
 
 export async function applyImageEdits(
@@ -45,6 +47,8 @@ export async function applyImageEdits(
     quality,
     rotation,
     cropBounds,
+    maxWidth,
+    maxHeight,
   }: EditedImageValues,
 ) {
   const dx = originalWidth / imageWidth;
@@ -102,8 +106,8 @@ export async function applyImageEdits(
 
   const { uri: rotatedUri } = await ImageResizer.createResizedImage(
     croppedUri,
-    originalWidth,
-    originalHeight,
+    maxWidth || originalWidth,
+    maxHeight || originalHeight,
     'JPEG',
     quality || 100,
     rotation,
