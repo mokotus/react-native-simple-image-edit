@@ -69,6 +69,10 @@ export async function applyImageEdits(
     finalPath = finalFile.path();
   }
 
+  if (!uri.startsWith('file://')) {
+    finalPath = 'file://' + finalPath;
+  }
+
   // const dPath = Platform.OS === 'android' ? 'file:////' + finalPath : finalPath;
 
   const exifData = await Exif.getExif(finalPath);
