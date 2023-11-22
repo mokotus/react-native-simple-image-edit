@@ -39,6 +39,7 @@ interface Props {
   ref: React.RefObject<ImageEditorRef>;
   imageSource?: ImageURISource;
   onError?: (error: ImageEditorError) => void;
+  loadingIndicator?: React.ReactNode;
 }
 
 interface ImageContextProps {
@@ -67,6 +68,16 @@ const styles = StyleSheet.create({
   gestureHandlerRoot: {
     flex: 1,
   },
+  loadingIndicatorContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     backgroundColor: 'black',
     flex: 1,
@@ -90,7 +101,7 @@ const styles = StyleSheet.create({
 });
 
 const Main = forwardRef<ImageEditorRef, Props>(
-  ({ imageSource, onError }: Props, ref) => {
+  ({ imageSource, onError, loadingIndicator }: Props, ref) => {
     const cropperLeft = useSharedValue(0);
     const cropperRight = useSharedValue(0);
     const cropperTop = useSharedValue(0);
@@ -98,6 +109,8 @@ const Main = forwardRef<ImageEditorRef, Props>(
 
     // const imageSourceSize = useSharedValue<Size | null>(null);
     const [imageSourceSize, setImageSourceSize] = useState<Size | null>(null);
+
+    const [imageLoading, setImageLoading] = useState<boolean>(false);
 
     // const containerSize = useSharedValue<Size | null>(null);
     const [containerSize, setContainerSize] = useState<Size | null>(null);
@@ -331,22 +344,34 @@ const Main = forwardRef<ImageEditorRef, Props>(
                 source={imageSource}
                 resizeMode="contain"
                 style={imageStyle}
+                onLoadStart={() => {
+                  setImageLoading(true);
+                }}
+                onLoadEnd={() => {
+                  setImageLoading(false);
+                }}
               />
             )}
-            <View style={styles.cropperContainer}>
-              <Animated.View style={imageStyle}>
-                <Animated.View style={[styles.shadow, shadowLeftStyle]} />
-                <Animated.View style={[styles.shadow, shadowRightStyle]} />
-                <Animated.View style={[styles.shadow, shadowTopStyle]} />
-                <Animated.View style={[styles.shadow, shadowBottomStyle]} />
-                <Cropper
-                  left={cropperLeft}
-                  right={cropperRight}
-                  top={cropperTop}
-                  bottom={cropperBottom}
-                />
-              </Animated.View>
-            </View>
+            {imageViewSize === null || imageLoading ? (
+              <View style={styles.loadingIndicatorContainer}>
+                {loadingIndicator}
+              </View>
+            ) : (
+              <View style={styles.cropperContainer}>
+                <Animated.View style={imageStyle}>
+                  <Animated.View style={[styles.shadow, shadowLeftStyle]} />
+                  <Animated.View style={[styles.shadow, shadowRightStyle]} />
+                  <Animated.View style={[styles.shadow, shadowTopStyle]} />
+                  <Animated.View style={[styles.shadow, shadowBottomStyle]} />
+                  <Cropper
+                    left={cropperLeft}
+                    right={cropperRight}
+                    top={cropperTop}
+                    bottom={cropperBottom}
+                  />
+                </Animated.View>
+              </View>
+            )}
           </View>
         </ImageContext.Provider>
       </GestureHandlerRootView>
