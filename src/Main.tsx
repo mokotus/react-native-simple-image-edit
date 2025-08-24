@@ -40,7 +40,7 @@ interface Props {
   imageSource?: ImageURISource;
   onError?: (error: ImageEditorError) => void;
   loadingIndicator?: React.ReactNode;
-  defaultLoadingState?: boolean;
+  isLoadingByDefault?: boolean;
 }
 
 interface ImageContextProps {
@@ -107,7 +107,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
       imageSource,
       onError,
       loadingIndicator,
-      defaultLoadingState = false,
+      isLoadingByDefault = false,
     }: Props,
     ref,
   ) => {
@@ -120,7 +120,7 @@ const Main = forwardRef<ImageEditorRef, Props>(
     const [imageSourceSize, setImageSourceSize] = useState<Size | null>(null);
 
     const [imageLoading, setImageLoading] =
-      useState<boolean>(defaultLoadingState);
+      useState<boolean>(isLoadingByDefault);
 
     // const containerSize = useSharedValue<Size | null>(null);
     const [containerSize, setContainerSize] = useState<Size | null>(null);
