@@ -40,6 +40,7 @@ interface Props {
   imageSource?: ImageURISource;
   onError?: (error: ImageEditorError) => void;
   loadingIndicator?: React.ReactNode;
+  defaultLoadingState?: boolean;
 }
 
 interface ImageContextProps {
@@ -101,7 +102,15 @@ const styles = StyleSheet.create({
 });
 
 const Main = forwardRef<ImageEditorRef, Props>(
-  ({ imageSource, onError, loadingIndicator }: Props, ref) => {
+  (
+    {
+      imageSource,
+      onError,
+      loadingIndicator,
+      defaultLoadingState = false,
+    }: Props,
+    ref,
+  ) => {
     const cropperLeft = useSharedValue(0);
     const cropperRight = useSharedValue(0);
     const cropperTop = useSharedValue(0);
@@ -110,7 +119,8 @@ const Main = forwardRef<ImageEditorRef, Props>(
     // const imageSourceSize = useSharedValue<Size | null>(null);
     const [imageSourceSize, setImageSourceSize] = useState<Size | null>(null);
 
-    const [imageLoading, setImageLoading] = useState<boolean>(false);
+    const [imageLoading, setImageLoading] =
+      useState<boolean>(defaultLoadingState);
 
     // const containerSize = useSharedValue<Size | null>(null);
     const [containerSize, setContainerSize] = useState<Size | null>(null);
