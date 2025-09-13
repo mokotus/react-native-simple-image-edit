@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -103,7 +103,7 @@ export default function Cropper({ left, right, top, bottom }: Props) {
   }
 
   return (
-    <PanGestureHandler onGestureEvent={mainPanHandler}>
+    <GestureDetector gesture={mainPanHandler}>
       <Animated.View style={cropperStyle} collapsable={false}>
         <Animated.View style={styles.overlay}>
           <View style={styles.gridColumn}>
@@ -150,6 +150,6 @@ export default function Cropper({ left, right, top, bottom }: Props) {
         <CropperHandle sides={{ bottom }} />
         <CropperHandle sides={{ bottom, right }} />
       </Animated.View>
-    </PanGestureHandler>
+    </GestureDetector>
   );
 }

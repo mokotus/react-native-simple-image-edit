@@ -1,5 +1,5 @@
-import { PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
-import { useAnimatedGestureHandler } from 'react-native-reanimated';
+import { Gesture } from 'react-native-gesture-handler';
+import { useSharedValue } from 'react-native-reanimated';
 import { Sides } from './Utils';
 import { useContext } from 'react';
 import { ImageContext } from './Main';
@@ -9,17 +9,26 @@ export default function useResizeHandler(sides: Sides) {
 
   const imageContext = useContext(ImageContext);
 
-  return useAnimatedGestureHandler<
-    PanGestureHandlerGestureEvent,
-    { left: number; right: number; top: number; bottom: number }
-  >({
-    onStart: (_, ctx) => {
-      ctx.left = left?.value || 0;
-      ctx.right = right?.value || 0;
-      ctx.top = top?.value || 0;
-      ctx.bottom = bottom?.value || 0;
-    },
-    onActive: (event, ctx) => {
+  const contextRef = useSharedValue({
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  });
+
+  return Gesture.Pan()
+    .onBegin(() => {
+      'worklet';
+      contextRef.value = {
+        left: left?.value || 0,
+        right: right?.value || 0,
+        top: top?.value || 0,
+        bottom: bottom?.value || 0,
+      };
+    })
+    .onUpdate((event) => {
+      'worklet';
+      const ctx = contextRef.value;
       const rawDx = event.translationX;
       const rawDy = event.translationY;
 
@@ -120,6 +129,5 @@ export default function useResizeHandler(sides: Sides) {
       if (right) right.value = ctx.right + dr;
       if (top) top.value = ctx.top + dt;
       if (bottom) bottom.value = ctx.bottom + db;
-    },
-  });
+    });
 }

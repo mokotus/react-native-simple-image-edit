@@ -3,8 +3,7 @@ import ImageEditor from '@react-native-community/image-editor';
 import { SharedValue } from 'react-native-reanimated';
 import { CropBounds } from './components/Cropper';
 import ReactNativeBlobUtil from 'react-native-blob-util';
-//@ts-ignore
-import Exif from 'react-native-exif';
+import Exify from '@lodev09/react-native-exify';
 
 export interface Position {
   x: number;
@@ -75,8 +74,8 @@ export async function applyImageEdits(
 
   // const dPath = Platform.OS === 'android' ? 'file:////' + finalPath : finalPath;
 
-  const exifData = await Exif.getExif(finalPath);
-  const orientation = exifData.Orientation;
+  const exifData = await Exify.readAsync(finalPath);
+  const orientation = exifData?.Orientation || 1;
 
   let x = cropBounds.left;
   let y = cropBounds.top;

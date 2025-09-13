@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import useResizeHandler from '../useResizeHandler';
 import { Sides } from '../Utils';
@@ -23,7 +23,7 @@ export default function CropperHandle({ sides }: Props) {
   const size = 15;
 
   return (
-    <PanGestureHandler onGestureEvent={panHandler}>
+    <GestureDetector gesture={panHandler}>
       <Animated.View
         style={[
           styles.handle,
@@ -37,6 +37,6 @@ export default function CropperHandle({ sides }: Props) {
           },
         ]}
       />
-    </PanGestureHandler>
+    </GestureDetector>
   );
 }

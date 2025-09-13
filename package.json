@@ -19,28 +19,27 @@
   "private": true,
   "license": "MIT",
   "peerDependencies": {
-    "@bam.tech/react-native-image-resizer": "^3.0.4",
-    "@react-native-community/image-editor": "^2.3.0",
-    "react-native": ">0.69.0",
-    "react-native-blob-util": "^0.19.2",
-    "react-native-exif": "^0.5.0",
-    "react-native-gesture-handler": "^2.9.0",
-    "react-native-reanimated": "^2.14.4"
+    "@bam.tech/react-native-image-resizer": "^3.0.7",
+    "@lodev09/react-native-exify": "^0.3.0",
+    "@react-native-community/image-editor": "^4.2.0",
+    "react-native": "^0.81.1",
+    "react-native-blob-util": "^0.19.11",
+    "react-native-gesture-handler": "^2.19.0",
+    "react-native-reanimated": "^4.1.0"
   },
   "devDependencies": {
-    "@bam.tech/react-native-image-resizer": "^3.0.4",
+    "@bam.tech/react-native-image-resizer": "^3.0.7",
     "@react-native-community/eslint-config": "^3.2.0",
-    "@react-native-community/image-editor": "^2.3.0",
-    "@react-native-masked-view/masked-view": "^0.2.8",
-    "@types/react": "^18.0.25",
-    "@types/react-native": ">0.69.0",
-    "@typescript-eslint/eslint-plugin": "^5.45.0",
-    "@typescript-eslint/parser": "^5.45.0",
-    "eslint": "^8.28.0",
-    "prettier": "^2.8.0",
-    "react-native-exif": "^0.5.0",
-    "react-native-gesture-handler": "^2.9.0",
-    "react-native-reanimated": "^2.14.4",
-    "typescript": "^4.9.3"
-  }
+    "@react-native-community/image-editor": "^4.2.0",
+    "@react-native-masked-view/masked-view": "^0.3.1",
+    "@types/react": "^18.3.12",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.3.3",
+    "react-native-gesture-handler": "^2.19.0",
+    "react-native-reanimated": "^4.1.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {}
 }
