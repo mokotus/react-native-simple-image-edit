@@ -96,7 +96,7 @@ export async function applyImageEdits(
     height = imageWidth - cropBounds.left - cropBounds.right;
   }
 
-  const croppedUri = await ImageEditor.cropImage(finalPath, {
+  const croppedResult = await ImageEditor.cropImage(finalPath, {
     offset: {
       x: x * dx,
       y: y * dy,
@@ -108,7 +108,7 @@ export async function applyImageEdits(
   });
 
   const { uri: rotatedUri } = await ImageResizer.createResizedImage(
-    croppedUri,
+    croppedResult.uri,
     maxWidth || originalWidth,
     maxHeight || originalHeight,
     'JPEG',

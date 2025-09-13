@@ -36,7 +36,6 @@ export interface ImageEditorRef {
   save: (options?: ImageSaveOptions) => Promise<string>;
 }
 interface Props {
-  ref: React.RefObject<ImageEditorRef>;
   imageSource?: ImageURISource;
   onError?: (error: ImageEditorError) => void;
   loadingIndicator?: React.ReactNode;

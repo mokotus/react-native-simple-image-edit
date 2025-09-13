@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.7",
+    "@lodev09/react-native-exify": "^0.2.7",
     "@react-native-community/eslint-config": "^3.2.0",
     "@react-native-community/image-editor": "^4.2.0",
     "@react-native-masked-view/masked-view": "^0.3.1",
@@ -37,6 +38,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.15.0",
     "prettier": "^3.3.3",
+    "react-native": "^0.81.4",
     "react-native-gesture-handler": "^2.19.0",
     "react-native-reanimated": "^4.1.0",
     "typescript": "^5.7.2"
