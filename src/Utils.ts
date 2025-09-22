@@ -74,8 +74,10 @@ export async function applyImageEdits(
 
   // const dPath = Platform.OS === 'android' ? 'file:////' + finalPath : finalPath;
 
-  const exifData = await Exify.readAsync(finalPath);
-  const orientation = exifData?.Orientation || 1;
+  // const exifData = await Exify.readAsync(finalPath);
+  // const orientation = exifData?.Orientation || 1;
+
+  const orientation = 1;
 
   let x = cropBounds.left;
   let y = cropBounds.top;
