@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "deploy": "./scripts/deploy.sh",
+    "deploy": "bash ./scripts/deploy.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -20,7 +20,7 @@
   "license": "MIT",
   "peerDependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.7",
-    "@lodev09/react-native-exify": "^0.3.0",
+    "@lodev09/react-native-exify": "^0.2.7",
     "@react-native-community/image-editor": "^4.2.0",
     "react-native": "^0.81.1",
     "react-native-blob-util": "^0.19.11",
@@ -29,7 +29,6 @@
   },
   "devDependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.7",
-    "@lodev09/react-native-exify": "^0.2.7",
     "@react-native-community/eslint-config": "^3.2.0",
     "@react-native-community/image-editor": "^4.2.0",
     "@react-native-masked-view/masked-view": "^0.3.1",
