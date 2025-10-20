@@ -5,7 +5,13 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { Image, ImageURISource, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  ImageURISource,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolate,
@@ -354,13 +360,10 @@ const Main = forwardRef<ImageEditorRef, Props>(
                 resizeMode="contain"
                 style={imageStyle}
                 onLoadStart={() => {
-                  setImageLoading(true);
+                  setImageLoading(Platform.OS !== 'ios'); // Disable loading indicator on iOS because onLoadEnd is fired before this for some reason
                 }}
                 onLoadEnd={() => {
                   setImageLoading(false);
-                }}
-                onLoad={() => {
-                  setImageLoading(false); // required because onLoadEnd does not fire on iOS for some reason.
                 }}
               />
             )}
