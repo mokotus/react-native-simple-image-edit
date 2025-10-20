@@ -359,6 +359,9 @@ const Main = forwardRef<ImageEditorRef, Props>(
                 onLoadEnd={() => {
                   setImageLoading(false);
                 }}
+                onLoad={() => {
+                  setImageLoading(false); // required because onLoadEnd does not fire on iOS for some reason.
+                }}
               />
             )}
             {imageViewSize === null || imageLoading ? (
